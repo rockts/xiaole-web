@@ -7,13 +7,16 @@ set -e
 REPO_NAME=$(basename "$(pwd)")
 ICLOUD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/XiaoleDev"
 
-# 根据仓库名称确定上下文文件名
+# 根据仓库名称确定上下文文件名和路径
 if [[ "$REPO_NAME" == *"backend"* ]] || [[ "$REPO_NAME" == *"xiaole-backend"* ]]; then
   CONTEXT_FILE="xiaole-backend-context.md"
+  AGENT_CONTEXT_PATH="./xiaole-agent-context/*"
 elif [[ "$REPO_NAME" == *"web"* ]] || [[ "$REPO_NAME" == *"xiaole-web"* ]]; then
   CONTEXT_FILE="xiaole-web-context.md"
+  AGENT_CONTEXT_PATH="../xiaole-backend/xiaole-agent-context/*"
 else
   CONTEXT_FILE="${REPO_NAME}-context.md"
+  AGENT_CONTEXT_PATH="./xiaole-agent-context/*"
 fi
 
 echo "📦 设置开发上下文: $REPO_NAME"
@@ -29,8 +32,8 @@ echo "   ✅ 目录已创建: $ICLOUD_DIR"
 echo ""
 echo "2️⃣ 检查 .cursorrules..."
 if [ ! -f .cursorrules ]; then
-  cat > .cursorrules << 'EOF'
-Include context from ./xiaole-agent-context/*
+  cat > .cursorrules << EOF
+Include context from ${AGENT_CONTEXT_PATH}
 
 # 开发上下文（iCloud 同步，不提交到代码库）
 Include context from ./docs/DEV_CONTEXT.md if it exists
