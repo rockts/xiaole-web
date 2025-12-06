@@ -35,4 +35,4 @@ curl -s http://localhost:8000/api/sessions >/dev/null && echo "✅ 后端正常"
 
 echo ""
 echo "================="
-echo "💡 如果前端卡住,运行: ./clean-restart.sh"
+echo "💡 如果前端卡住,运行: ./scripts/clean-restart.sh"
