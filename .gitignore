@@ -45,3 +45,6 @@ coverage/
 *.tmp
 *.bak
 diff.txt
+
+# Development context (iCloud synced, not committed)
+docs/DEV_CONTEXT.md

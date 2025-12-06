@@ -1,1 +1,4 @@
 Include context from ../xiaole-backend/xiaole-agent-context/*
+
+# 开发上下文（iCloud 同步，不提交到代码库）
+Include context from ./docs/DEV_CONTEXT.md if it exists
