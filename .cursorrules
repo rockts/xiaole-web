@@ -4,4 +4,4 @@ Include context from ../xiaole-backend/xiaole-agent-context/*
 Include context from ./docs/DEV_CONTEXT.md if it exists
 
 # Markdown 文档创建规则
-Include context from ./docs/MARKDOWN_RULES.md
+Include context from ../xiaole-ai/frontend/development/MARKDOWN_RULES.md
