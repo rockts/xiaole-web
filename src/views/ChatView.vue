@@ -32,8 +32,19 @@
       </div>
     </div>
 
+    <!-- 会话加载错误提示 -->
+    <div v-if="sessionLoadError" class="session-error-message">
+      <div class="error-icon">⚠️</div>
+      <h2 class="error-title">无法加载会话</h2>
+      <p class="error-detail">{{ sessionLoadError }}</p>
+      <div class="error-actions">
+        <button class="error-button" @click="handleRetryLoadSession">重试</button>
+        <button class="error-button secondary" @click="handleGoToNewChat">新建对话</button>
+      </div>
+    </div>
+
     <!-- 空状态问候语 -->
-    <div v-if="isEmptyChat" class="welcome-message">
+    <div v-else-if="isEmptyChat" class="welcome-message">
       <div class="welcome-icon">👋</div>
       <h2 class="welcome-title">{{ currentGreeting }}</h2>
     </div>
@@ -58,14 +69,22 @@
             },
           ]"
         >
-          <img
-            v-if="message.image_path"
-            :src="formatImagePath(message.image_path)"
-            alt="图片"
-            class="message-image"
-            @click="openImage(formatImagePath(message.image_path))"
-          />
           <template v-if="message.role === 'assistant'">
+            <!-- AI消息的图片显示 -->
+            <div v-if="message.image_path" class="message-image-wrapper">
+              <img
+                :key="`img-${message.id}-${formatImagePath(message.image_path)}`"
+                :src="formatImagePath(message.image_path)"
+                alt="图片"
+                class="message-image"
+                @click="openImage(formatImagePath(message.image_path))"
+                @error="handleImageError($event)"
+                @load="handleImageLoad($event)"
+              />
+              <div v-if="checkImageError(message)" class="image-error">
+                <span>图片加载失败</span>
+              </div>
+            </div>
             <template v-if="message.status === 'thinking'">
               <div class="thinking-wrapper">
                 <div class="thinking-animation">
@@ -212,6 +231,21 @@
             </template>
           </template>
           <template v-else>
+            <!-- 用户消息的图片显示 - 在气泡外面，上方位置 -->
+            <div v-if="message.image_path" class="message-image-wrapper user-message-image">
+              <img
+                :key="`img-${message.id}-${formatImagePath(message.image_path)}`"
+                :src="formatImagePath(message.image_path)"
+                alt="图片"
+                class="message-image"
+                @click="openImage(formatImagePath(message.image_path))"
+                @error="handleImageError($event)"
+                @load="handleImageLoad($event)"
+              />
+              <div v-if="checkImageError(message)" class="image-error">
+                <span>图片加载失败</span>
+              </div>
+            </div>
             <div
               class="user-bubble"
               :class="{ 'voice-message': message.messageType === 'voice' }"
@@ -1018,6 +1052,7 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "@/stores/chat";
+import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
 import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
@@ -1035,6 +1070,9 @@ const { messages, sessionInfo, isTyping } = storeToRefs(chatStore);
 const isEmptyChat = computed(
   () => (messages.value?.length || 0) === 0 && !isTyping.value
 );
+
+// 开发环境标志
+const isDev = import.meta.env.DEV;
 
 const messageInput = ref(null);
 const isMobile = ref(window.innerWidth <= 768);
@@ -1080,11 +1118,13 @@ const quoteText = ref("");
 const tempSelectedText = ref("");
 const showQuoteBtn = ref(false);
 const quoteBtnPos = ref({ top: 0, left: 0 });
+const imageLoadErrors = ref(new Set()); // 跟踪图片加载错误
 const feedbackState = ref(new Map());
 const speakingMessageId = ref(null);
 const inputContent = ref("");
 const shouldScrollToBottom = ref(false); // 标志位：是否需要滚动到底部
 const isLoadingSession = ref(true); // 初始就设置为 true，默认隐藏
+const sessionLoadError = ref(null); // 会话加载错误信息
 let currentSpeech = null;
 let autoStickRaf = null;
 let loadingTimeout = null; // 加载超时定时器
@@ -1267,20 +1307,27 @@ watch(
 
     if (newId) {
       isLoadingSession.value = true;
+      sessionLoadError.value = null; // 清除之前的错误
 
       // 设置3秒超时保护(缩短超时时间)
       loadingTimeout = setTimeout(() => {
         console.warn("⚠️ 会话加载超时,强制停止加载动画");
         isLoadingSession.value = false;
+        if (!sessionLoadError.value) {
+          sessionLoadError.value = "加载超时，请检查网络连接或后端服务是否正常运行";
+        }
       }, 3000);
 
       try {
         await chatStore.loadSession(newId);
         console.log("✅ loadSession 完成,准备显示UI");
+        console.log("📊 当前消息数量:", chatStore.messages.length);
+        console.log("📊 当前会话ID:", chatStore.currentSessionId);
 
         // 先停止加载动画
         clearTimeout(loadingTimeout);
         isLoadingSession.value = false;
+        sessionLoadError.value = null; // 清除错误
 
         // 然后设置滚动位置
         await nextTick();
@@ -1294,14 +1341,56 @@ watch(
         console.error("加载会话失败:", error);
         clearTimeout(loadingTimeout);
         isLoadingSession.value = false;
+        
+        // 根据错误类型设置友好的错误信息
+        if (error.response?.status === 404) {
+          sessionLoadError.value = `会话不存在或已被删除 (ID: ${newId})`;
+        } else if (error.response?.status === 401) {
+          sessionLoadError.value = "认证失败，请重新登录";
+          // 触发登出
+          const authStore = useAuthStore();
+          authStore.logout();
+          router.push({ name: 'Login' });
+        } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          sessionLoadError.value = "请求超时，请检查网络连接或后端服务是否正常运行";
+        } else if (error.message?.includes('Network Error') || !error.response) {
+          sessionLoadError.value = "无法连接到后端服务，请确认后端服务是否在运行 (端口 8000)";
+        } else {
+          const errorMsg = error.formattedMessage || error.message || error.response?.data?.detail || "未知错误";
+          sessionLoadError.value = `加载失败: ${errorMsg}`;
+        }
       }
     } else {
       chatStore.clearCurrentSession();
       isLoadingSession.value = false;
+      sessionLoadError.value = null;
     }
   },
   { immediate: true }
 );
+
+// 重试加载会话
+const handleRetryLoadSession = () => {
+  const currentId = route.params.sessionId;
+  if (currentId) {
+    sessionLoadError.value = null;
+    // 触发重新加载
+    chatStore.loadSession(currentId).then(() => {
+      sessionLoadError.value = null;
+      isLoadingSession.value = false;
+    }).catch((error) => {
+      // 错误处理已在 watch 中完成
+      console.error("重试加载失败:", error);
+    });
+  }
+};
+
+// 跳转到新建对话
+const handleGoToNewChat = () => {
+  sessionLoadError.value = null;
+  chatStore.clearCurrentSession();
+  router.push({ name: 'Chat' });
+};
 
 // 是否接近底部
 const isNearBottom = () => {
@@ -1547,6 +1636,7 @@ const renderMarkdown = (content) => {
 
   // ===== 第零步：修复被错误拆分的 LaTeX 命令 =====
   // 修复 $\bet$a -> $\beta$, \gamm$a -> $\gamma$, 等
+  // 这个步骤必须在标准化分隔符之前，因为原始内容可能包含错误拆分的命令
   const greekLetters = [
     "alpha",
     "beta",
@@ -1575,15 +1665,19 @@ const renderMarkdown = (content) => {
 
   greekLetters.forEach((letter) => {
     // 修复各种错误拆分模式
-    // $\bet$a -> $\beta$
+    // 1. \alph$a -> $\alpha$（在 \( ... \) 内部）
+    // 2. $\alph$a -> $\alpha$
+    // 3. \alph$$a$ -> $\alpha$（双重 $ 的情况）
     const partialPatterns = [];
     for (let i = 1; i < letter.length; i++) {
       const part1 = letter.slice(0, i);
       const part2 = letter.slice(i);
-      // \part1$part2 或 $\part1$part2
-      partialPatterns.push(new RegExp(`\\$?\\\\${part1}\\$${part2}`, "g"));
-      // \part1$part2 (no leading $)
-      partialPatterns.push(new RegExp(`\\\\${part1}\\$${part2}`, "g"));
+      // \part1$part2（在 \( ... \) 内部，没有 $ 包裹）
+      partialPatterns.push(new RegExp(`\\\\${part1}\\$${part2}(?!\\w)`, "g"));
+      // \part1$$part2$（双重 $ 的情况）
+      partialPatterns.push(new RegExp(`\\\\${part1}\\$\\$${part2}\\$`, "g"));
+      // $\part1$part2
+      partialPatterns.push(new RegExp(`\\$\\\\${part1}\\$${part2}(?!\\w)`, "g"));
     }
     partialPatterns.forEach((pattern) => {
       preprocessed = preprocessed.replace(pattern, `$\\${letter}$`);
@@ -1591,20 +1685,101 @@ const renderMarkdown = (content) => {
   });
 
   // ===== 第一步：标准化 LaTeX 分隔符 =====
+  // 注意：这一步必须在第零步之后，因为第零步需要处理原始格式
   preprocessed = preprocessed.replace(
     /\\\[([\s\S]*?)\\\]/g,
-    (_, match) => `\n$$\n${match}\n$$\n`
+    (_, match) => `\n$$\n${match.trim()}\n$$\n`
   );
   preprocessed = preprocessed.replace(
     /\\\(([\s\S]*?)\\\)/g,
-    (_, match) => `$${match}$`
+    (_, match) => {
+      // 移除首尾空格，确保格式正确
+      // 但保留内部空格（因为可能是 $ \alpha $ 这样的格式）
+      const trimmed = match.trim();
+      return `$${trimmed}$`;
+    }
   );
 
-  // ===== 第二步：修复不完整的 $ 包裹 =====
+  // ===== 第二步：修复识别错误导致的格式问题 =====
+  // 2.0 修复被错误拆分的希腊字母命令（字母被 $ 分割）
+  // 优先处理最复杂的情况：\alph$$a$ → $\alpha$（处理 $$ 在中间的情况）
+  preprocessed = preprocessed.replace(/\\alph\$\$([a-z])\$/g, "$\\alpha$");
+  // 修复 $ \alph$$a$ → $\alpha$（前面有空格的情况）
+  preprocessed = preprocessed.replace(/\$\s*\\alph\$\$([a-z])\$/g, "$\\alpha$");
+  // 修复 $\alph$a → $\alpha$（移除后面多余的字母）
+  preprocessed = preprocessed.replace(/\$\\alph\$\s*([a-z])(?![a-z])/g, "$\\alpha$");
+  // 修复 $ \alph$a → $\alpha$（前面有空格，后面有多余字母）
+  preprocessed = preprocessed.replace(/\$\s*\\alph\$\s*([a-z])(?![a-z])/g, "$\\alpha$");
+  
+  // 修复 \bet$$a$ → $\beta$
+  preprocessed = preprocessed.replace(/\\bet\$\$([a-z])\$/g, "$\\beta$");
+  preprocessed = preprocessed.replace(/\$\s*\\bet\$\$([a-z])\$/g, "$\\beta$");
+  // 修复 \bet$a → $\beta$（移除后面多余的字母）
+  preprocessed = preprocessed.replace(/\\bet\$\s*([a-z])(?![a-z])/g, "$\\beta$");
+  preprocessed = preprocessed.replace(/\$\s*\\bet\$\s*([a-z])(?![a-z])/g, "$\\beta$");
+  
+  // 修复 \gamm$$a → $\gamma$（处理 $$ 在中间的情况，可能没有结尾$）
+  preprocessed = preprocessed.replace(/\\gamm\$\$([a-z])(?:\$|$|，|、|和)/g, "$\\gamma$");
+  preprocessed = preprocessed.replace(/\$\s*\\gamm\$\$([a-z])(?:\$|$|，|、|和)/g, "$\\gamma$");
+  // 修复 \gamm$a $ → $\gamma$（移除后面多余的字母和空格）
+  preprocessed = preprocessed.replace(/\\gamm\$\s*([a-z])\s*\$/g, "$\\gamma$");
+  preprocessed = preprocessed.replace(/\\gamm\$\s*([a-z])(?![a-z])/g, "$\\gamma$");
+  preprocessed = preprocessed.replace(/\$\s*\\gamm\$\s*([a-z])(?![a-z])/g, "$\\gamma$");
+  
+  // 修复其他类似的错误拆分（如 $\delt$a → $\delta$）
+  preprocessed = preprocessed.replace(/\$\\delt\$\s*([a-z])(?![a-z])/g, "$\\delta$");
+  preprocessed = preprocessed.replace(/\$\\epsi\$\s*([a-z])(?![a-z])/g, "$\\epsilon$");
+  preprocessed = preprocessed.replace(/\$\\thet\$\s*([a-z])(?![a-z])/g, "$\\theta$");
+  preprocessed = preprocessed.replace(/\$\\lamb\$\s*([a-z])(?![a-z])/g, "$\\lambda$");
+  preprocessed = preprocessed.replace(/\$\\sigm\$\s*([a-z])(?![a-z])/g, "$\\sigma$");
+  
+  // 2.0.1 修复 $$a$、$$b$、$$c$ → $a$、$b$、$c$（多余的 $）
+  // 注意：这个必须在处理希腊字母之后，否则会干扰
+  // $$a$ → $a$（移除多余的 $，但保留正确的 $ 包裹）
+  preprocessed = preprocessed.replace(/\$\$([a-z])\$/g, "$$$1$$");
+  // 修复 $ $$a$ → $a$（前面有空格的情况）
+  preprocessed = preprocessed.replace(/\$\s*\$\$([a-z])\$/g, "$$$1$$");
+  
+  // 2.1 修复不完整的希腊字母命令（缺少结尾字母）
+  // 修复类似 \alph、\bet、\gamm 等不完整的命令
+  preprocessed = preprocessed.replace(/\\alph(?!a|ha)/g, "\\alpha");
+  preprocessed = preprocessed.replace(/\\bet(?!a|ta)/g, "\\beta");
+  preprocessed = preprocessed.replace(/\\gamm(?!a|ma)/g, "\\gamma");
+  preprocessed = preprocessed.replace(/\\delt(?!a|ta)/g, "\\delta");
+  preprocessed = preprocessed.replace(/\\epsi(?!l|lo|lon)/g, "\\epsilon");
+  preprocessed = preprocessed.replace(/\\thet(?!a|ha)/g, "\\theta");
+  preprocessed = preprocessed.replace(/\\lamb(?!d|da)/g, "\\lambda");
+  preprocessed = preprocessed.replace(/\\sigm(?!a|ma)/g, "\\sigma");
+  
+  // 2.2 修复变量名格式问题（更全面的处理）
+  // 修复 "a $" → "$a$"（变量名后跟空格和$，然后是标点或换行）
+  preprocessed = preprocessed.replace(/([a-z])\s+\$\s*([，。、；：！？\s\n]|$)/g, "$$$1$$$2");
+  // 修复 "a$" → "$a$"（变量名后直接跟$，然后是标点、空格或换行）
+  preprocessed = preprocessed.replace(/([a-z])\$(?=[，。、；：！？\s\n]|$)/g, "$$$1$$");
+  // 修复 "a $" 在数学上下文中的情况（前面有数学符号或公式）
+  // 例如：... $\alpha$ a $ ... → ... $\alpha$ $a$ ...
+  preprocessed = preprocessed.replace(/(\$[^$]+\$)\s+([a-z])\s+\$/g, "$1 $$$2$$");
+  
+  // 2.3 修复更多边界情况
+  // 修复独立的字母变量（前后都是标点或空格，且不在代码块中）
+  // 例如：... a, b, c ... → 如果上下文是数学，应该变成 ... $a$, $b$, $c$ ...
+  // 但这里我们保守处理，只处理明确是数学变量的情况
+  // 修复 "a, b, c" 在数学公式后的情况
+  preprocessed = preprocessed.replace(/(\$[^$]+\$)\s+([a-z])\s*,\s*([a-z])\s*,\s*([a-z])(?=[，。、；：！？\s\n]|$)/g, "$1 $$$2$, $$$3$, $$$4$$");
+  
+  // 2.4 修复空格和$的各种组合
+  // 修复 "a $ b" → "$a$ $b$"
+  preprocessed = preprocessed.replace(/([a-z])\s+\$\s+([a-z])(?=[，。、；：！？\s\n]|$)/g, "$$$1$$ $$$2$$");
+  
+  // 2.5 修复数字变量（如 "x1", "x2" 等）
+  // 修复 "x1 $", "x2 $" → "$x_1$", "$x_2$"
+  preprocessed = preprocessed.replace(/([a-z])(\d+)\s+\$(?=[，。、；：！？\s\n]|$)/g, "$$$1_{$2}$$");
+
+  // ===== 第三步：修复不完整的 $ 包裹 =====
   const mathCommands =
     "alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Alpha|Beta|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega|infty|partial|nabla|sum|prod|int|sqrt|frac|vec|hat|bar|dot|tilde|pm|times|div|cdot|leq|geq|neq|approx|equiv|forall|exists|in|subset|cup|cap|rightarrow|leftarrow|Rightarrow|Leftarrow";
 
-  // 2.1 修复 \alpha$ 缺少开头 $
+  // 3.1 修复 \alpha$ 缺少开头 $
   preprocessed = preprocessed.replace(
     new RegExp(
       `(?<!\\$)(\\\\(?:${mathCommands})(?:_\\{?[^}\\s]*\\}?)?)\\$`,
@@ -1613,7 +1788,7 @@ const renderMarkdown = (content) => {
     "$$$1$$"
   );
 
-  // 2.2 修复 $\alpha 缺少结尾 $ (后跟中文、标点、空格)
+  // 3.2 修复 $\alpha 缺少结尾 $ (后跟中文、标点、空格)
   preprocessed = preprocessed.replace(
     new RegExp(
       `\\$(\\\\(?:${mathCommands})(?:_\\{?[^}\\s]*\\}?)?)(?=[\\u4e00-\\u9fa5，。、；：！？\\s\\n]|$)`,
@@ -1622,7 +1797,7 @@ const renderMarkdown = (content) => {
     "$$$1$$"
   );
 
-  // 2.3 修复独立的希腊字母命令（没有任何 $ 包裹）
+  // 3.3 修复独立的希腊字母命令（没有任何 $ 包裹）
   preprocessed = preprocessed.replace(
     new RegExp(
       `(?<!\\$|\\\\)(\\\\(?:${mathCommands}))(?![a-zA-Z])(?!\\$)`,
@@ -1631,7 +1806,7 @@ const renderMarkdown = (content) => {
     "$$$1$$"
   );
 
-  // 2.4 修复 $a、$b 和 a$、b$ 等错误格式
+  // 3.4 修复 $a、$b 和 a$、b$ 等错误格式
   preprocessed = preprocessed.replace(
     /\$([a-zA-Z])、\$([a-zA-Z])/g,
     "$$$1$、$$$2$$"
@@ -1646,19 +1821,19 @@ const renderMarkdown = (content) => {
   );
   preprocessed = preprocessed.replace(/(?<!\$)([a-zA-Z])\$(?!\$)/g, "$$$1$$");
 
-  // 2.5 修复 a$、$b 格式
+  // 3.5 修复 a$、$b 格式
   preprocessed = preprocessed.replace(
     /([a-zA-Z])\$、\$([a-zA-Z])/g,
     "$$$1$、$$$2$$"
   );
 
-  // ===== 第三步：处理块级公式 =====
+  // ===== 第四步：处理块级公式 =====
   preprocessed = preprocessed.replace(
     /(?<!\$)\n\\begin\{([a-z]+)\}([\s\S]*?)\\end\{\1\}(?!\$)/g,
     "\n$$\n\\begin{$1}$2\\end{$1}\n$$\n"
   );
 
-  // ===== 第四步：处理独立的 LaTeX 命令块 =====
+  // ===== 第五步：处理独立的 LaTeX 命令块 =====
   preprocessed = preprocessed.replace(
     /(^|\n)(\s*\\(oiint|iint|int|frac|sum|prod|lim|begin|mathbf|mathcal|partial)[\s\S]+?)(\n|$)/g,
     (match, p1, p2, p3, p4) => {
@@ -1666,6 +1841,48 @@ const renderMarkdown = (content) => {
       return `${p1}$$\n${p2.trim()}\n$$${p4}`;
     }
   );
+
+  // ===== 第六步：最终清理和验证 =====
+  // 确保所有数学公式都有正确的 $ 包裹
+  // 修复连续的 $（如 $$$ → $$）
+  preprocessed = preprocessed.replace(/\$\$\$\$/g, "$$");
+  // 修复 $ $（中间有空格）→ $$
+  preprocessed = preprocessed.replace(/\$\s+\$/g, "$$");
+  
+  // 修复其他可能的格式问题
+  // 修复 $$ $（块级公式后跟单个$）→ $$
+  preprocessed = preprocessed.replace(/\$\$\s+\$/g, "$$");
+  // 修复 $ $$（单个$后跟块级公式）→ $$
+  preprocessed = preprocessed.replace(/\$\s+\$\$/g, "$$");
+  
+  // 调试：在开发环境下输出处理后的内容
+  // 检查是否有数学符号需要处理
+  const hasMathSymbols = /[\\$]/.test(content) && (
+    /\\[a-zA-Z]+\$|\$\\[a-zA-Z]|\\alph|\\bet|\\gamm|\$\$[a-z]\$/.test(content)
+  );
+  
+  if (hasMathSymbols) {
+    const originalSnippet = content.substring(0, 500);
+    const processedSnippet = preprocessed.substring(0, 500);
+    console.log("[Math Parser] 原始内容:", originalSnippet);
+    console.log("[Math Parser] 处理后:", processedSnippet);
+    
+    // 检查是否有未处理的数学符号
+    const unprocessedPatterns = [
+      /\\alph\$\$[a-z]\$/g,
+      /\\bet\$\$[a-z]\$/g,
+      /\\gamm\$\$[a-z]\$/g,
+      /\$\$[a-z]\$/g,
+      /\\[a-zA-Z]+\$[a-z]\$/g
+    ];
+    
+    unprocessedPatterns.forEach((pattern, index) => {
+      const matches = processedSnippet.match(pattern);
+      if (matches) {
+        console.warn(`[Math Parser] 可能未处理的数学符号 (模式${index + 1}):`, matches);
+      }
+    });
+  }
 
   return marked.parse(preprocessed);
 };
@@ -1906,7 +2123,9 @@ const shareMessage = async (message) => {
   const sessionId = route.params.sessionId;
   if (sessionId) {
     shareDialogTitle.value = sessionInfo.value?.title || "分享对话";
-    shareDialogUrl.value = `${window.location.origin}/share/${sessionId}`;
+    shareDialogUrl.value = typeof window !== 'undefined' && window.location 
+      ? `${window.location.origin}/share/${sessionId}`
+      : `/share/${sessionId}`;
     showShareDialog.value = true;
   } else {
     // 如果没有会话ID（例如新对话未保存），回退到复制文本
@@ -1929,11 +2148,74 @@ const formatImagePath = (path) => {
   ) {
     return path;
   }
-  // 如果路径不是以 / 开头，添加 / 前缀
-  if (!path.startsWith("/")) {
-    return "/" + path;
+  // 统一路径格式：确保以 / 开头
+  // 移除可能存在的重复斜杠
+  let normalizedPath = path.replace(/^\/+/, "/");
+  if (!normalizedPath.startsWith("/")) {
+    normalizedPath = "/" + normalizedPath;
   }
-  return path;
+  // 调试日志（开发环境）
+  if (import.meta.env.DEV && path !== normalizedPath) {
+    console.log(`[formatImagePath] 路径规范化: "${path}" -> "${normalizedPath}"`);
+  }
+  return normalizedPath;
+};
+
+// 获取完整的图片 URL（安全地访问 window）
+const getFullImageUrl = (path) => {
+  if (!path) return "";
+  const formattedPath = formatImagePath(path);
+  if (formattedPath.startsWith('http')) {
+    return formattedPath;
+  }
+  // 安全地访问 window.location.origin
+  if (typeof window !== 'undefined' && window.location) {
+    return `${window.location.origin}${formattedPath}`;
+  }
+  return formattedPath;
+};
+
+const handleImageError = (event) => {
+  const img = event.target;
+  const src = img.src || img.currentSrc || '';
+  if (src) {
+    console.error("❌ 图片加载失败:", src);
+    console.error("   图片元素:", img);
+    console.error("   完整 URL:", img.src);
+    // 同时记录规范化路径和完整 URL
+    imageLoadErrors.value.add(src);
+    // 如果是相对路径，也记录完整 URL
+    if (!src.startsWith('http') && typeof window !== 'undefined' && window.location) {
+      const fullUrl = `${window.location.origin}${src}`;
+      imageLoadErrors.value.add(fullUrl);
+      console.error("   完整 URL (已记录):", fullUrl);
+    }
+  }
+};
+
+const handleImageLoad = (event) => {
+  const img = event.target;
+  const src = img.src || img.currentSrc || '';
+  if (src) {
+    // 图片加载成功，移除错误标记
+    imageLoadErrors.value.delete(src);
+    // 如果是相对路径，也移除完整 URL 的错误标记
+    if (!src.startsWith('http') && typeof window !== 'undefined' && window.location) {
+      const fullUrl = `${window.location.origin}${src}`;
+      imageLoadErrors.value.delete(fullUrl);
+    }
+    if (import.meta.env.DEV) {
+      console.log("✅ 图片加载成功:", src);
+    }
+  }
+};
+
+const checkImageError = (message) => {
+  if (!message.image_path) return false;
+  const formattedPath = formatImagePath(message.image_path);
+  // 检查完整 URL（包括协议和域名）
+  const fullUrl = getFullImageUrl(message.image_path);
+  return imageLoadErrors.value.has(formattedPath) || imageLoadErrors.value.has(fullUrl);
 };
 
 // 将秒格式化为 mm:ss 显示在语音消息上
@@ -2360,13 +2642,14 @@ const sendMessage = async () => {
   const userMsg = {
     id: `temp-${Date.now()}`,
     role: "user",
-    content: content,
-    image_path: currentPreview, // 临时显示本地预览图
+    content: content || "",
+    image_path: currentPreview || null, // 临时显示本地预览图
     timestamp: new Date().toISOString(),
   };
   messages.value.push(userMsg);
 
   console.log("✅ 用户消息已添加:", userMsg);
+  console.log("📸 图片路径 (初始):", userMsg.image_path);
   console.log(
     "📤 准备发送消息. 内容长度:",
     content?.length,
@@ -2394,17 +2677,99 @@ const sendMessage = async () => {
           content: "❌ 图片上传失败，请重试。",
           status: "done",
         });
+        // 移除刚才添加的用户消息
+        const lastIndex = messages.value.length - 1;
+        if (lastIndex >= 0 && messages.value[lastIndex].id === userMsg.id) {
+          messages.value.splice(lastIndex, 1);
+        }
         return;
+      }
+      
+      // 更新用户消息的图片路径为服务器返回的路径
+      // 注意：发送给后端使用原始路径，显示时使用规范化路径
+      const normalizedImagePath = formatImagePath(imagePath);
+      const lastIndex = messages.value.length - 1;
+      if (lastIndex >= 0 && messages.value[lastIndex].id === userMsg.id) {
+        // 记录旧路径用于调试
+        const oldPath = messages.value[lastIndex].image_path;
+        // 使用 Vue 3 的响应式更新方式
+        // 直接赋值会触发响应式更新
+        // 显示时使用规范化路径，但发送给后端时使用原始路径
+        messages.value[lastIndex].image_path = normalizedImagePath;
+        console.log("✅ 已更新用户消息的图片路径:");
+        console.log("   旧路径:", oldPath);
+        console.log("   服务器返回路径:", imagePath);
+        console.log("   规范化后路径:", normalizedImagePath);
+        console.log("📸 更新后的消息:", JSON.stringify(messages.value[lastIndex], null, 2));
+        // 强制触发 Vue 的响应式更新
+        // 使用 nextTick 确保 DOM 更新
+        await nextTick();
+        console.log("🔄 DOM 已更新，图片应该显示");
+        // 额外检查：如果图片元素存在，尝试强制重新加载
+        // 使用 nextTick 确保 DOM 已经更新
+        await nextTick();
+        const messageElement = document.querySelector(`[data-msg-id="${userMsg.id}"]`);
+        if (messageElement) {
+          const imgElement = messageElement.querySelector('.message-image');
+          if (imgElement) {
+            // 构建完整的图片 URL
+            const currentSrc = imgElement.src;
+            const expectedFullUrl = getFullImageUrl(normalizedImagePath);
+            // 如果当前 src 与期望的不一致，强制更新
+            if (currentSrc !== expectedFullUrl && !normalizedImagePath.startsWith('blob:') && !normalizedImagePath.startsWith('data:')) {
+              console.log("🔄 强制更新图片 src:");
+              console.log("   当前 src:", currentSrc);
+              console.log("   期望 src:", expectedFullUrl);
+              imgElement.src = expectedFullUrl;
+            }
+          }
+        }
+      } else {
+        console.warn("⚠️ 未找到用户消息，无法更新图片路径. lastIndex:", lastIndex, "userMsg.id:", userMsg.id);
       }
     }
 
     // 发送到后端（默认走流式）
     // 使用 setTimeout 0 将请求放入下一个宏任务，确保 UI 先渲染用户消息和思考气泡
+    // 注意：发送给后端时使用原始 imagePath，不要使用规范化后的路径
     setTimeout(async () => {
       try {
-        await chatStore.sendMessageStreamed(content, imagePath, router);
+        // 确保发送给后端的是原始路径（服务器返回的路径）
+        // 如果 imagePath 是完整 URL，需要提取相对路径
+        let pathToSend = imagePath;
+        if (imagePath && typeof imagePath === 'string') {
+          // 如果是完整 URL，提取路径部分
+          try {
+            const url = new URL(imagePath);
+            pathToSend = url.pathname;
+          } catch {
+            // 不是完整 URL，直接使用
+            // 确保路径格式正确（以 / 开头）
+            if (!pathToSend.startsWith('/') && !pathToSend.startsWith('http')) {
+              pathToSend = '/' + pathToSend;
+            }
+          }
+        }
+        console.log('📤 发送给后端的图片路径:', pathToSend);
+        console.log('📤 发送内容:', content?.substring(0, 100));
+        console.log('📤 会话ID:', chatStore.currentSessionId);
+        await chatStore.sendMessageStreamed(content, pathToSend, router);
       } catch (e) {
         console.error("Async send failed:", e);
+        // 显示更详细的错误信息
+        if (e.response) {
+          console.error("错误响应:", e.response.data);
+          console.error("错误状态:", e.response.status);
+          console.error("错误状态文本:", e.response.statusText);
+          console.error("请求URL:", e.config?.url);
+          console.error("请求参数:", {
+            prompt: content?.substring(0, 50),
+            session_id: chatStore.currentSessionId,
+            image_path: pathToSend
+          });
+        } else {
+          console.error("网络错误或请求未发送:", e.message);
+        }
       }
     }, 0);
   } catch (e) {
@@ -3324,6 +3689,77 @@ const feedbackMessage = async (message, type) => {
   font-size: 16px;
   color: var(--text-secondary);
 }
+
+/* 会话加载错误提示样式 */
+.session-error-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+  animation: fadeInUp 0.5s ease-out;
+  max-width: 500px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-medium);
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.error-detail {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.error-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: var(--brand-primary);
+  color: white;
+}
+
+.error-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.error-button.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+}
+
+.error-button.secondary:hover {
+  background: var(--bg-hover);
+}
+
 .chat-view.empty {
   justify-content: center;
   align-items: center;
@@ -3713,14 +4149,59 @@ const feedbackMessage = async (message, type) => {
 [data-theme="light"] .message-content :deep(pre code) {
   color: #24292e;
 }
+.message-image-wrapper {
+  margin: 0 0 8px 0;
+  position: relative;
+  width: 100%;
+  /* 确保图片容器可见 */
+  min-height: 50px;
+}
+
+/* 用户消息的图片 - 显示在气泡外面，上方位置 */
+.message.user .message-image-wrapper.user-message-image {
+  margin: 0 0 8px 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.message.user .message-image-wrapper.user-message-image .message-image {
+  max-width: 320px;
+  border-radius: 12px;
+}
+
 .message-image {
   max-width: 320px;
   max-height: 180px;
-  margin: 12px 0 0 0;
+  width: auto;
+  height: auto;
   border-radius: 6px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  display: block;
   cursor: pointer;
+  /* 确保图片可见 */
+  opacity: 1;
+  visibility: visible;
 }
+
+.image-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px dashed var(--border-medium);
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 12px;
+}
+
 .md-content :deep(h1),
 .md-content :deep(h2),
 .md-content :deep(h3) {
@@ -5109,10 +5590,282 @@ const feedbackMessage = async (message, type) => {
 .message.assistant .md-content {
   color: var(--text-primary) !important;
 }
-</style>
 
-<!-- 全局样式：思考动画关键帧，供内联样式引用 -->
-<style>
+/* 全局样式：思考动画关键帧，供内联样式引用 */
+@keyframes thinkingBounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+.feedback-textarea {
+  width: 100%;
+  height: 120px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  resize: none;
+  margin-bottom: 16px;
+  outline: none;
+}
+
+.feedback-textarea:focus {
+  border-color: var(--brand-primary);
+}
+
+.feedback-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-cancel:hover {
+  background: var(--bg-hover);
+}
+
+/* 相关阅读卡片样式 */
+.related-reading {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+  animation: fadeIn 0.5s ease-out;
+  width: 100%;
+  overflow: hidden; /* 防止溢出 */
+}
+
+.related-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.related-cards {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  width: 100%;
+  /* 隐藏滚动条但保持功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.related-cards::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+.related-card {
+  flex: 1; /* 均分宽度 */
+  min-width: 0; /* 防止内容撑开 */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 确保图片不溢出圆角 */
+}
+
+.related-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-medium);
+}
+
+.card-image-area {
+  height: 110px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-cover-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: contain;
+  opacity: 0.9;
+  transition: transform 0.3s ease;
+}
+
+.related-card:hover .card-cover-icon {
+  transform: scale(1.1);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  flex: 1;
+}
+
+.card-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.domain-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-snippet {
+  display: none; /* 隐藏摘要以节省空间 */
+}
+
+/* 拖拽遮罩样式 */
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* 让事件穿透，但 dragover 会拦截 */
+}
+
+/* 暗色模式适配 */
+:global(.dark) .drag-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.drag-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-lg);
+  border: 2px dashed var(--brand-primary);
+  animation: scaleIn 0.2s ease-out;
+}
+
+.drag-icon {
+  color: var(--brand-primary);
+  margin-bottom: 16px;
+}
+
+.drag-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.drag-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== 强制移除所有消息之间的横线/边框（覆盖现有样式） ===== */
+.chat-inner,
+.message,
+.message * {
+  border-top: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.divider {
+  display: none !important;
+}
+
+/* 确保 message 内容区域不显示分隔线 */
+.message .md-content,
+.message .user-bubble,
+.message .voice-session-tag,
+.quote-preview-bar,
+.related-reading,
+.related-card,
+.preview-card {
+  border: none !important;
+}
+
+.message + .message {
+  border-top: none !important;
+  margin-top: 8px;
+}
+
+/* 强制确保消息内容区可见且有默认配色，防止被其他样式隐藏 */
+.message .md-content {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--text-primary) !important;
+}
+
+.message.assistant .md-content {
+  color: var(--text-primary) !important;
+}
+
+/* 全局样式：思考动画关键帧，供内联样式引用 */
 @keyframes thinkingBounce {
   0%,
   60%,

@@ -8,6 +8,8 @@
     <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)">
     <!-- Apple Touch Icon 保留为你的 logo（不影响桌面浏览器 favicon 选择） -->
     <link rel="apple-touch-icon" href="/src/assets/logo-xiaole.png" />
+    <!-- 默认 favicon（兼容浏览器默认请求） -->
+    <link rel="icon" type="image/png" href="/favicon-light.png" />
     <!-- 主题自适配：仅使用媒体查询，避免回退覆盖选择；先放深色，再放浅色 -->
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-dark.png" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-dark.png" media="(prefers-color-scheme: dark)" />
@@ -45,11 +47,15 @@
                         if (window.location.pathname !== '/login') {
                             window.location.href = '/login';
                         }
-                    } else {
+                    } else if (res.status === 404) {
+                        // 404 可能是后端未启动或路径不存在，静默处理
+                        console.warn('⚠️ API端点不存在（可能是后端未启动）');
+                    } else if (res.ok) {
                         console.log('✅ Token有效');
                     }
                 }).catch(err => {
-                    console.error('❌ Token验证失败:', err);
+                    // 网络错误或其他错误，静默处理
+                    console.warn('⚠️ Token验证请求失败（可能是后端未启动）:', err.message);
                 });
             } else {
                 console.log('ℹ️ 未检测到token');
@@ -58,6 +64,48 @@
     </script>
 </head>
 
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
 <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>

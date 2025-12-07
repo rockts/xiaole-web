@@ -168,3 +168,6 @@ echo "   2. 编辑 docs/DEV_CONTEXT.md 开始记录开发上下文"
 echo "   3. AI 会自动读取此文件（无需手动操作）"
 echo ""
 
+
+echo ""
+

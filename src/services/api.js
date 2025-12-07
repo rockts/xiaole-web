@@ -26,6 +26,12 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${authStore.token}`
         }
 
+        // 如果请求数据是 FormData，删除默认的 Content-Type
+        // 让浏览器自动设置正确的 Content-Type（包含 boundary）
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type']
+        }
+
         // 初始化重试计数
         config.retryCount = config.retryCount || 0
         return config
@@ -50,6 +56,31 @@ api.interceptors.response.use(
                 window.location.href = '/login'
             }
             return Promise.reject(error)
+        }
+
+        // 处理 404 错误 - 改进错误信息格式
+        if (error.response && error.response.status === 404) {
+            const url = error.config?.url || ''
+            // 格式化错误信息，避免直接显示 JSON
+            let errorMessage = '资源未找到'
+            if (error.response.data) {
+                if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data
+                } else if (error.response.data.detail) {
+                    errorMessage = error.response.data.detail
+                } else if (typeof error.response.data === 'object') {
+                    // 如果是对象，转换为友好的错误信息
+                    errorMessage = error.response.data.message || error.response.data.error || '资源未找到'
+                }
+            }
+            error.message = `404: ${errorMessage}`
+            error.formattedMessage = errorMessage
+            // 对于会话相关的 404，静默处理（可能是后端未启动）
+            if (url.includes('/session') || url.includes('/sessions')) {
+                console.warn('API 404 (会话相关，可能是后端未启动):', url)
+            } else {
+                console.warn('API 404:', url, errorMessage)
+            }
         }
 
         // 如果没有配置或已达到最大重试次数，直接拒绝
@@ -114,7 +145,8 @@ export default {
         const body = data.image_path ? { image_path: data.image_path } : null
 
         // 增加超时时间到 120 秒，并禁用自动重试
-        return api.post(`/chat?${params.toString()}`, body, {
+        // 使用 /api/chat 避免与前端路由 /chat/xxx 冲突
+        return api.post(`/api/chat?${params.toString()}`, body, {
             timeout: 120000,
             retryCount: MAX_RETRIES
         })
@@ -210,9 +242,7 @@ export default {
     },
 
     uploadImage(formData) {
-        return api.post('/vision/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        return api.post('/vision/upload', formData)
     },
 
     // 记忆相关
@@ -314,9 +344,7 @@ export default {
     },
 
     uploadDocument(formData) {
-        return api.post('/documents/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        return api.post('/documents/upload', formData)
     },
 
     deleteDocument(docId) {
@@ -359,7 +387,6 @@ export default {
         const file = fileOrBlob instanceof File ? fileOrBlob : new File([fileOrBlob], filename, { type: 'audio/wav' })
         formData.append('file', file)
         return api.post('/voice/recognize', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
             timeout: 60000
         })
     }

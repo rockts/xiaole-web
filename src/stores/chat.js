@@ -41,19 +41,49 @@ export const useChatStore = defineStore('chat', () => {
             const data = await api.getSession(sessionId, 500)
             console.log('📦 Session data received:', data)
             console.log('💬 Messages:', data.messages || data.history || [])
+
+            // 确保数据格式正确
+            if (!data) {
+                throw new Error('会话数据为空')
+            }
+
             sessionInfo.value = {
                 id: sessionId,
-                title: data.title
+                title: data.title || '未命名对话'
             }
             const loadedMessages = data.messages || data.history || []
-            messages.value = loadedMessages.map(msg => ({
-                ...msg,
-                status: 'done'
-            }))
+            messages.value = loadedMessages.map(msg => {
+                // 确保图片路径正确格式化
+                const processedMsg = {
+                    ...msg,
+                    status: 'done'
+                }
+                // 如果消息有图片路径，确保格式正确
+                if (processedMsg.image_path) {
+                    // 规范化图片路径（确保以 / 开头）
+                    if (!processedMsg.image_path.startsWith('http') &&
+                        !processedMsg.image_path.startsWith('data:') &&
+                        !processedMsg.image_path.startsWith('blob:') &&
+                        !processedMsg.image_path.startsWith('/')) {
+                        processedMsg.image_path = '/' + processedMsg.image_path
+                    }
+                }
+                return processedMsg
+            })
             currentSessionId.value = sessionId
             console.log('✅ Session loaded, messages count:', messages.value.length)
         } catch (error) {
             console.error('❌ Failed to load session:', error)
+            // 如果是 404，清空会话数据，避免显示错误
+            if (error.response?.status === 404) {
+                console.warn('会话不存在或已删除，清空当前会话')
+                messages.value = []
+                sessionInfo.value = null
+                currentSessionId.value = null
+            } else {
+                // 对于其他错误，重新抛出以便外部处理
+                throw error
+            }
         }
     }
 
@@ -197,13 +227,36 @@ export const useChatStore = defineStore('chat', () => {
             console.log('✅ Sessions refreshed after message sent')
         } catch (error) {
             console.error('Failed to send message:', error)
+            console.error('错误详情:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                config: error.config
+            })
             // 错误时撤销占位或显示错误
             if (activeTypingMessageId.value) {
                 const msgIndex = messages.value.findIndex(m => m.id === activeTypingMessageId.value)
                 if (msgIndex !== -1) {
                     messages.value[msgIndex].status = 'done'
                     delete messages.value[msgIndex].thinkingStartedAt
-                    const errorMsg = error.response?.data?.detail || '出错了，请稍后重试。'
+                    // 格式化错误信息，避免直接显示 JSON 对象
+                    let errorMsg = '出错了，请稍后重试。'
+                    if (error.response?.status === 500) {
+                        errorMsg = '服务器内部错误（500）。可能原因：\n1. 后端服务异常\n2. 图片路径格式不正确\n3. 请求参数有误\n\n请检查浏览器控制台的详细错误信息，或联系管理员。'
+                    } else if (error.response?.data) {
+                        if (typeof error.response.data === 'string') {
+                            errorMsg = error.response.data
+                        } else if (error.response.data.detail) {
+                            errorMsg = error.response.data.detail
+                        } else if (error.response.data.message) {
+                            errorMsg = error.response.data.message
+                        } else if (error.formattedMessage) {
+                            errorMsg = error.formattedMessage
+                        }
+                    } else if (error.message) {
+                        errorMsg = error.message
+                    }
                     messages.value[msgIndex].content = `⚠️ ${errorMsg}`
                 }
             }
@@ -333,11 +386,31 @@ export const useChatStore = defineStore('chat', () => {
             console.log('📤 Sent message with session_id:', currentSessionId.value || null)
         } catch (error) {
             console.error('Failed to send message (stream):', error)
+            console.error('流式发送错误详情:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                config: error.config
+            })
             if (activeTypingMessageId.value) {
                 const msgIndex = messages.value.findIndex(m => m.id === activeTypingMessageId.value)
                 if (msgIndex !== -1) {
                     messages.value[msgIndex].status = 'done'
-                    const errText = error?.message || '出错了，请稍后重试。'
+                    let errText = '出错了，请稍后重试。'
+                    if (error.response?.status === 500) {
+                        errText = '服务器内部错误（500）。可能原因：\n1. 后端服务异常\n2. 图片路径格式不正确\n3. 请求参数有误\n\n请检查浏览器控制台的详细错误信息。'
+                    } else if (error.response?.data) {
+                        if (typeof error.response.data === 'string') {
+                            errText = error.response.data
+                        } else if (error.response.data.detail) {
+                            errText = error.response.data.detail
+                        } else if (error.response.data.message) {
+                            errText = error.response.data.message
+                        }
+                    } else if (error?.message) {
+                        errText = error.message
+                    }
                     messages.value[msgIndex].content = `⚠️ ${errText}`
                 }
             }
@@ -375,9 +448,20 @@ export const useChatStore = defineStore('chat', () => {
 
             const response = await api.uploadImage(formData)
             console.log('✅ chatStore.uploadImage success:', response)
-            return response.file_path
+
+            // 兼容不同的返回格式
+            if (response.file_path) return response.file_path
+            if (response.url) return response.url
+            if (typeof response === 'string') return response
+
+            console.warn('⚠️ Unknown response format from uploadImage:', response)
+            return response.file_path || response.url || null
         } catch (error) {
             console.error('Failed to upload image:', error)
+            if (error.response) {
+                console.error('Error response:', JSON.stringify(error.response.data, null, 2))
+                console.error('Error status:', error.response.status)
+            }
             return null
         }
     }
