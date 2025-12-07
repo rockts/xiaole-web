@@ -3929,6 +3929,12 @@ const feedbackMessage = async (message, type) => {
   word-break: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
+  overflow: hidden;
+}
+/* 用户气泡中的代码块溢出处理 */
+.user-bubble :deep(pre) {
+  max-width: 100%;
+  overflow-x: auto;
 }
 [data-theme="light"] .user-bubble {
   background: #f3f4f6;
@@ -4191,11 +4197,14 @@ const feedbackMessage = async (message, type) => {
   background: #0d1117;
   padding: 0;
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin: 1em 0;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.12);
   max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 .message-content :deep(pre code),
@@ -4209,7 +4218,7 @@ const feedbackMessage = async (message, type) => {
   line-height: 1.75;
   display: block;
   white-space: pre;
-  overflow-x: auto;
+  overflow-x: visible;
   font-weight: 400;
   letter-spacing: 0.02em;
   tab-size: 2;
@@ -5657,10 +5666,21 @@ const feedbackMessage = async (message, type) => {
   visibility: visible !important;
   opacity: 1 !important;
   color: var(--text-primary) !important;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .message.assistant .md-content {
   color: var(--text-primary) !important;
+  width: 100%;
+  min-width: 0;
+}
+
+.message.assistant {
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 /* 全局样式：思考动画关键帧，供内联样式引用 */

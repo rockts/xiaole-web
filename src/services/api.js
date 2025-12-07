@@ -24,6 +24,9 @@ api.interceptors.request.use(
         const authStore = useAuthStore()
         if (authStore.token) {
             config.headers.Authorization = `Bearer ${authStore.token}`
+            console.log('🔐 Token 已注入，长度:', authStore.token.length)
+        } else {
+            console.warn('⚠️ 未找到 Token，authStore.token 为空')
         }
 
         // 如果请求数据是 FormData，删除默认的 Content-Type
@@ -31,6 +34,10 @@ api.interceptors.request.use(
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type']
         }
+
+        // 调试日志：打印请求信息
+        console.log('📤 API 请求:', config.method?.toUpperCase(), config.url)
+        console.log('📤 请求头:', JSON.stringify(config.headers, null, 2))
 
         // 初始化重试计数
         config.retryCount = config.retryCount || 0
