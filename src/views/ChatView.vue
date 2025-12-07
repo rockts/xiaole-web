@@ -38,8 +38,12 @@
       <h2 class="error-title">无法加载会话</h2>
       <p class="error-detail">{{ sessionLoadError }}</p>
       <div class="error-actions">
-        <button class="error-button" @click="handleRetryLoadSession">重试</button>
-        <button class="error-button secondary" @click="handleGoToNewChat">新建对话</button>
+        <button class="error-button" @click="handleRetryLoadSession">
+          重试
+        </button>
+        <button class="error-button secondary" @click="handleGoToNewChat">
+          新建对话
+        </button>
       </div>
     </div>
 
@@ -73,7 +77,9 @@
             <!-- AI消息的图片显示 -->
             <div v-if="message.image_path" class="message-image-wrapper">
               <img
-                :key="`img-${message.id}-${formatImagePath(message.image_path)}`"
+                :key="`img-${message.id}-${formatImagePath(
+                  message.image_path
+                )}`"
                 :src="formatImagePath(message.image_path)"
                 alt="图片"
                 class="message-image"
@@ -232,9 +238,14 @@
           </template>
           <template v-else>
             <!-- 用户消息的图片显示 - 在气泡外面，上方位置 -->
-            <div v-if="message.image_path" class="message-image-wrapper user-message-image">
+            <div
+              v-if="message.image_path"
+              class="message-image-wrapper user-message-image"
+            >
               <img
-                :key="`img-${message.id}-${formatImagePath(message.image_path)}`"
+                :key="`img-${message.id}-${formatImagePath(
+                  message.image_path
+                )}`"
                 :src="formatImagePath(message.image_path)"
                 alt="图片"
                 class="message-image"
@@ -1314,7 +1325,8 @@ watch(
         console.warn("⚠️ 会话加载超时,强制停止加载动画");
         isLoadingSession.value = false;
         if (!sessionLoadError.value) {
-          sessionLoadError.value = "加载超时，请检查网络连接或后端服务是否正常运行";
+          sessionLoadError.value =
+            "加载超时，请检查网络连接或后端服务是否正常运行";
         }
       }, 3000);
 
@@ -1341,7 +1353,7 @@ watch(
         console.error("加载会话失败:", error);
         clearTimeout(loadingTimeout);
         isLoadingSession.value = false;
-        
+
         // 根据错误类型设置友好的错误信息
         if (error.response?.status === 404) {
           sessionLoadError.value = `会话不存在或已被删除 (ID: ${newId})`;
@@ -1350,13 +1362,25 @@ watch(
           // 触发登出
           const authStore = useAuthStore();
           authStore.logout();
-          router.push({ name: 'Login' });
-        } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-          sessionLoadError.value = "请求超时，请检查网络连接或后端服务是否正常运行";
-        } else if (error.message?.includes('Network Error') || !error.response) {
-          sessionLoadError.value = "无法连接到后端服务，请确认后端服务是否在运行 (端口 8000)";
+          router.push({ name: "Login" });
+        } else if (
+          error.code === "ECONNABORTED" ||
+          error.message?.includes("timeout")
+        ) {
+          sessionLoadError.value =
+            "请求超时，请检查网络连接或后端服务是否正常运行";
+        } else if (
+          error.message?.includes("Network Error") ||
+          !error.response
+        ) {
+          sessionLoadError.value =
+            "无法连接到后端服务，请确认后端服务是否在运行 (端口 8000)";
         } else {
-          const errorMsg = error.formattedMessage || error.message || error.response?.data?.detail || "未知错误";
+          const errorMsg =
+            error.formattedMessage ||
+            error.message ||
+            error.response?.data?.detail ||
+            "未知错误";
           sessionLoadError.value = `加载失败: ${errorMsg}`;
         }
       }
@@ -1375,13 +1399,16 @@ const handleRetryLoadSession = () => {
   if (currentId) {
     sessionLoadError.value = null;
     // 触发重新加载
-    chatStore.loadSession(currentId).then(() => {
-      sessionLoadError.value = null;
-      isLoadingSession.value = false;
-    }).catch((error) => {
-      // 错误处理已在 watch 中完成
-      console.error("重试加载失败:", error);
-    });
+    chatStore
+      .loadSession(currentId)
+      .then(() => {
+        sessionLoadError.value = null;
+        isLoadingSession.value = false;
+      })
+      .catch((error) => {
+        // 错误处理已在 watch 中完成
+        console.error("重试加载失败:", error);
+      });
   }
 };
 
@@ -1389,7 +1416,7 @@ const handleRetryLoadSession = () => {
 const handleGoToNewChat = () => {
   sessionLoadError.value = null;
   chatStore.clearCurrentSession();
-  router.push({ name: 'Chat' });
+  router.push({ name: "Chat" });
 };
 
 // 是否接近底部
@@ -1677,7 +1704,9 @@ const renderMarkdown = (content) => {
       // \part1$$part2$（双重 $ 的情况）
       partialPatterns.push(new RegExp(`\\\\${part1}\\$\\$${part2}\\$`, "g"));
       // $\part1$part2
-      partialPatterns.push(new RegExp(`\\$\\\\${part1}\\$${part2}(?!\\w)`, "g"));
+      partialPatterns.push(
+        new RegExp(`\\$\\\\${part1}\\$${part2}(?!\\w)`, "g")
+      );
     }
     partialPatterns.forEach((pattern) => {
       preprocessed = preprocessed.replace(pattern, `$\\${letter}$`);
@@ -1690,15 +1719,12 @@ const renderMarkdown = (content) => {
     /\\\[([\s\S]*?)\\\]/g,
     (_, match) => `\n$$\n${match.trim()}\n$$\n`
   );
-  preprocessed = preprocessed.replace(
-    /\\\(([\s\S]*?)\\\)/g,
-    (_, match) => {
-      // 移除首尾空格，确保格式正确
-      // 但保留内部空格（因为可能是 $ \alpha $ 这样的格式）
-      const trimmed = match.trim();
-      return `$${trimmed}$`;
-    }
-  );
+  preprocessed = preprocessed.replace(/\\\(([\s\S]*?)\\\)/g, (_, match) => {
+    // 移除首尾空格，确保格式正确
+    // 但保留内部空格（因为可能是 $ \alpha $ 这样的格式）
+    const trimmed = match.trim();
+    return `$${trimmed}$`;
+  });
 
   // ===== 第二步：修复识别错误导致的格式问题 =====
   // 2.0 修复被错误拆分的希腊字母命令（字母被 $ 分割）
@@ -1707,39 +1733,78 @@ const renderMarkdown = (content) => {
   // 修复 $ \alph$$a$ → $\alpha$（前面有空格的情况）
   preprocessed = preprocessed.replace(/\$\s*\\alph\$\$([a-z])\$/g, "$\\alpha$");
   // 修复 $\alph$a → $\alpha$（移除后面多余的字母）
-  preprocessed = preprocessed.replace(/\$\\alph\$\s*([a-z])(?![a-z])/g, "$\\alpha$");
+  preprocessed = preprocessed.replace(
+    /\$\\alph\$\s*([a-z])(?![a-z])/g,
+    "$\\alpha$"
+  );
   // 修复 $ \alph$a → $\alpha$（前面有空格，后面有多余字母）
-  preprocessed = preprocessed.replace(/\$\s*\\alph\$\s*([a-z])(?![a-z])/g, "$\\alpha$");
-  
+  preprocessed = preprocessed.replace(
+    /\$\s*\\alph\$\s*([a-z])(?![a-z])/g,
+    "$\\alpha$"
+  );
+
   // 修复 \bet$$a$ → $\beta$
   preprocessed = preprocessed.replace(/\\bet\$\$([a-z])\$/g, "$\\beta$");
   preprocessed = preprocessed.replace(/\$\s*\\bet\$\$([a-z])\$/g, "$\\beta$");
   // 修复 \bet$a → $\beta$（移除后面多余的字母）
-  preprocessed = preprocessed.replace(/\\bet\$\s*([a-z])(?![a-z])/g, "$\\beta$");
-  preprocessed = preprocessed.replace(/\$\s*\\bet\$\s*([a-z])(?![a-z])/g, "$\\beta$");
-  
+  preprocessed = preprocessed.replace(
+    /\\bet\$\s*([a-z])(?![a-z])/g,
+    "$\\beta$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\s*\\bet\$\s*([a-z])(?![a-z])/g,
+    "$\\beta$"
+  );
+
   // 修复 \gamm$$a → $\gamma$（处理 $$ 在中间的情况，可能没有结尾$）
-  preprocessed = preprocessed.replace(/\\gamm\$\$([a-z])(?:\$|$|，|、|和)/g, "$\\gamma$");
-  preprocessed = preprocessed.replace(/\$\s*\\gamm\$\$([a-z])(?:\$|$|，|、|和)/g, "$\\gamma$");
+  preprocessed = preprocessed.replace(
+    /\\gamm\$\$([a-z])(?:\$|$|，|、|和)/g,
+    "$\\gamma$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\s*\\gamm\$\$([a-z])(?:\$|$|，|、|和)/g,
+    "$\\gamma$"
+  );
   // 修复 \gamm$a $ → $\gamma$（移除后面多余的字母和空格）
   preprocessed = preprocessed.replace(/\\gamm\$\s*([a-z])\s*\$/g, "$\\gamma$");
-  preprocessed = preprocessed.replace(/\\gamm\$\s*([a-z])(?![a-z])/g, "$\\gamma$");
-  preprocessed = preprocessed.replace(/\$\s*\\gamm\$\s*([a-z])(?![a-z])/g, "$\\gamma$");
-  
+  preprocessed = preprocessed.replace(
+    /\\gamm\$\s*([a-z])(?![a-z])/g,
+    "$\\gamma$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\s*\\gamm\$\s*([a-z])(?![a-z])/g,
+    "$\\gamma$"
+  );
+
   // 修复其他类似的错误拆分（如 $\delt$a → $\delta$）
-  preprocessed = preprocessed.replace(/\$\\delt\$\s*([a-z])(?![a-z])/g, "$\\delta$");
-  preprocessed = preprocessed.replace(/\$\\epsi\$\s*([a-z])(?![a-z])/g, "$\\epsilon$");
-  preprocessed = preprocessed.replace(/\$\\thet\$\s*([a-z])(?![a-z])/g, "$\\theta$");
-  preprocessed = preprocessed.replace(/\$\\lamb\$\s*([a-z])(?![a-z])/g, "$\\lambda$");
-  preprocessed = preprocessed.replace(/\$\\sigm\$\s*([a-z])(?![a-z])/g, "$\\sigma$");
-  
+  preprocessed = preprocessed.replace(
+    /\$\\delt\$\s*([a-z])(?![a-z])/g,
+    "$\\delta$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\\epsi\$\s*([a-z])(?![a-z])/g,
+    "$\\epsilon$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\\thet\$\s*([a-z])(?![a-z])/g,
+    "$\\theta$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\\lamb\$\s*([a-z])(?![a-z])/g,
+    "$\\lambda$"
+  );
+  preprocessed = preprocessed.replace(
+    /\$\\sigm\$\s*([a-z])(?![a-z])/g,
+    "$\\sigma$"
+  );
+
   // 2.0.1 修复 $$a$、$$b$、$$c$ → $a$、$b$、$c$（多余的 $）
   // 注意：这个必须在处理希腊字母之后，否则会干扰
   // $$a$ → $a$（移除多余的 $，但保留正确的 $ 包裹）
   preprocessed = preprocessed.replace(/\$\$([a-z])\$/g, "$$$1$$");
   // 修复 $ $$a$ → $a$（前面有空格的情况）
   preprocessed = preprocessed.replace(/\$\s*\$\$([a-z])\$/g, "$$$1$$");
-  
+
   // 2.1 修复不完整的希腊字母命令（缺少结尾字母）
   // 修复类似 \alph、\bet、\gamm 等不完整的命令
   preprocessed = preprocessed.replace(/\\alph(?!a|ha)/g, "\\alpha");
@@ -1750,30 +1815,48 @@ const renderMarkdown = (content) => {
   preprocessed = preprocessed.replace(/\\thet(?!a|ha)/g, "\\theta");
   preprocessed = preprocessed.replace(/\\lamb(?!d|da)/g, "\\lambda");
   preprocessed = preprocessed.replace(/\\sigm(?!a|ma)/g, "\\sigma");
-  
+
   // 2.2 修复变量名格式问题（更全面的处理）
   // 修复 "a $" → "$a$"（变量名后跟空格和$，然后是标点或换行）
-  preprocessed = preprocessed.replace(/([a-z])\s+\$\s*([，。、；：！？\s\n]|$)/g, "$$$1$$$2");
+  preprocessed = preprocessed.replace(
+    /([a-z])\s+\$\s*([，。、；：！？\s\n]|$)/g,
+    "$$$1$$$2"
+  );
   // 修复 "a$" → "$a$"（变量名后直接跟$，然后是标点、空格或换行）
-  preprocessed = preprocessed.replace(/([a-z])\$(?=[，。、；：！？\s\n]|$)/g, "$$$1$$");
+  preprocessed = preprocessed.replace(
+    /([a-z])\$(?=[，。、；：！？\s\n]|$)/g,
+    "$$$1$$"
+  );
   // 修复 "a $" 在数学上下文中的情况（前面有数学符号或公式）
   // 例如：... $\alpha$ a $ ... → ... $\alpha$ $a$ ...
-  preprocessed = preprocessed.replace(/(\$[^$]+\$)\s+([a-z])\s+\$/g, "$1 $$$2$$");
-  
+  preprocessed = preprocessed.replace(
+    /(\$[^$]+\$)\s+([a-z])\s+\$/g,
+    "$1 $$$2$$"
+  );
+
   // 2.3 修复更多边界情况
   // 修复独立的字母变量（前后都是标点或空格，且不在代码块中）
   // 例如：... a, b, c ... → 如果上下文是数学，应该变成 ... $a$, $b$, $c$ ...
   // 但这里我们保守处理，只处理明确是数学变量的情况
   // 修复 "a, b, c" 在数学公式后的情况
-  preprocessed = preprocessed.replace(/(\$[^$]+\$)\s+([a-z])\s*,\s*([a-z])\s*,\s*([a-z])(?=[，。、；：！？\s\n]|$)/g, "$1 $$$2$, $$$3$, $$$4$$");
-  
+  preprocessed = preprocessed.replace(
+    /(\$[^$]+\$)\s+([a-z])\s*,\s*([a-z])\s*,\s*([a-z])(?=[，。、；：！？\s\n]|$)/g,
+    "$1 $$$2$, $$$3$, $$$4$$"
+  );
+
   // 2.4 修复空格和$的各种组合
   // 修复 "a $ b" → "$a$ $b$"
-  preprocessed = preprocessed.replace(/([a-z])\s+\$\s+([a-z])(?=[，。、；：！？\s\n]|$)/g, "$$$1$$ $$$2$$");
-  
+  preprocessed = preprocessed.replace(
+    /([a-z])\s+\$\s+([a-z])(?=[，。、；：！？\s\n]|$)/g,
+    "$$$1$$ $$$2$$"
+  );
+
   // 2.5 修复数字变量（如 "x1", "x2" 等）
   // 修复 "x1 $", "x2 $" → "$x_1$", "$x_2$"
-  preprocessed = preprocessed.replace(/([a-z])(\d+)\s+\$(?=[，。、；：！？\s\n]|$)/g, "$$$1_{$2}$$");
+  preprocessed = preprocessed.replace(
+    /([a-z])(\d+)\s+\$(?=[，。、；：！？\s\n]|$)/g,
+    "$$$1_{$2}$$"
+  );
 
   // ===== 第三步：修复不完整的 $ 包裹 =====
   const mathCommands =
@@ -1848,38 +1931,41 @@ const renderMarkdown = (content) => {
   preprocessed = preprocessed.replace(/\$\$\$\$/g, "$$");
   // 修复 $ $（中间有空格）→ $$
   preprocessed = preprocessed.replace(/\$\s+\$/g, "$$");
-  
+
   // 修复其他可能的格式问题
   // 修复 $$ $（块级公式后跟单个$）→ $$
   preprocessed = preprocessed.replace(/\$\$\s+\$/g, "$$");
   // 修复 $ $$（单个$后跟块级公式）→ $$
   preprocessed = preprocessed.replace(/\$\s+\$\$/g, "$$");
-  
+
   // 调试：在开发环境下输出处理后的内容
   // 检查是否有数学符号需要处理
-  const hasMathSymbols = /[\\$]/.test(content) && (
-    /\\[a-zA-Z]+\$|\$\\[a-zA-Z]|\\alph|\\bet|\\gamm|\$\$[a-z]\$/.test(content)
-  );
-  
+  const hasMathSymbols =
+    /[\\$]/.test(content) &&
+    /\\[a-zA-Z]+\$|\$\\[a-zA-Z]|\\alph|\\bet|\\gamm|\$\$[a-z]\$/.test(content);
+
   if (hasMathSymbols) {
     const originalSnippet = content.substring(0, 500);
     const processedSnippet = preprocessed.substring(0, 500);
     console.log("[Math Parser] 原始内容:", originalSnippet);
     console.log("[Math Parser] 处理后:", processedSnippet);
-    
+
     // 检查是否有未处理的数学符号
     const unprocessedPatterns = [
       /\\alph\$\$[a-z]\$/g,
       /\\bet\$\$[a-z]\$/g,
       /\\gamm\$\$[a-z]\$/g,
       /\$\$[a-z]\$/g,
-      /\\[a-zA-Z]+\$[a-z]\$/g
+      /\\[a-zA-Z]+\$[a-z]\$/g,
     ];
-    
+
     unprocessedPatterns.forEach((pattern, index) => {
       const matches = processedSnippet.match(pattern);
       if (matches) {
-        console.warn(`[Math Parser] 可能未处理的数学符号 (模式${index + 1}):`, matches);
+        console.warn(
+          `[Math Parser] 可能未处理的数学符号 (模式${index + 1}):`,
+          matches
+        );
       }
     });
   }
@@ -2123,9 +2209,10 @@ const shareMessage = async (message) => {
   const sessionId = route.params.sessionId;
   if (sessionId) {
     shareDialogTitle.value = sessionInfo.value?.title || "分享对话";
-    shareDialogUrl.value = typeof window !== 'undefined' && window.location 
-      ? `${window.location.origin}/share/${sessionId}`
-      : `/share/${sessionId}`;
+    shareDialogUrl.value =
+      typeof window !== "undefined" && window.location
+        ? `${window.location.origin}/share/${sessionId}`
+        : `/share/${sessionId}`;
     showShareDialog.value = true;
   } else {
     // 如果没有会话ID（例如新对话未保存），回退到复制文本
@@ -2156,7 +2243,9 @@ const formatImagePath = (path) => {
   }
   // 调试日志（开发环境）
   if (import.meta.env.DEV && path !== normalizedPath) {
-    console.log(`[formatImagePath] 路径规范化: "${path}" -> "${normalizedPath}"`);
+    console.log(
+      `[formatImagePath] 路径规范化: "${path}" -> "${normalizedPath}"`
+    );
   }
   return normalizedPath;
 };
@@ -2165,11 +2254,11 @@ const formatImagePath = (path) => {
 const getFullImageUrl = (path) => {
   if (!path) return "";
   const formattedPath = formatImagePath(path);
-  if (formattedPath.startsWith('http')) {
+  if (formattedPath.startsWith("http")) {
     return formattedPath;
   }
   // 安全地访问 window.location.origin
-  if (typeof window !== 'undefined' && window.location) {
+  if (typeof window !== "undefined" && window.location) {
     return `${window.location.origin}${formattedPath}`;
   }
   return formattedPath;
@@ -2177,7 +2266,7 @@ const getFullImageUrl = (path) => {
 
 const handleImageError = (event) => {
   const img = event.target;
-  const src = img.src || img.currentSrc || '';
+  const src = img.src || img.currentSrc || "";
   if (src) {
     console.error("❌ 图片加载失败:", src);
     console.error("   图片元素:", img);
@@ -2185,7 +2274,11 @@ const handleImageError = (event) => {
     // 同时记录规范化路径和完整 URL
     imageLoadErrors.value.add(src);
     // 如果是相对路径，也记录完整 URL
-    if (!src.startsWith('http') && typeof window !== 'undefined' && window.location) {
+    if (
+      !src.startsWith("http") &&
+      typeof window !== "undefined" &&
+      window.location
+    ) {
       const fullUrl = `${window.location.origin}${src}`;
       imageLoadErrors.value.add(fullUrl);
       console.error("   完整 URL (已记录):", fullUrl);
@@ -2195,12 +2288,16 @@ const handleImageError = (event) => {
 
 const handleImageLoad = (event) => {
   const img = event.target;
-  const src = img.src || img.currentSrc || '';
+  const src = img.src || img.currentSrc || "";
   if (src) {
     // 图片加载成功，移除错误标记
     imageLoadErrors.value.delete(src);
     // 如果是相对路径，也移除完整 URL 的错误标记
-    if (!src.startsWith('http') && typeof window !== 'undefined' && window.location) {
+    if (
+      !src.startsWith("http") &&
+      typeof window !== "undefined" &&
+      window.location
+    ) {
       const fullUrl = `${window.location.origin}${src}`;
       imageLoadErrors.value.delete(fullUrl);
     }
@@ -2215,7 +2312,10 @@ const checkImageError = (message) => {
   const formattedPath = formatImagePath(message.image_path);
   // 检查完整 URL（包括协议和域名）
   const fullUrl = getFullImageUrl(message.image_path);
-  return imageLoadErrors.value.has(formattedPath) || imageLoadErrors.value.has(fullUrl);
+  return (
+    imageLoadErrors.value.has(formattedPath) ||
+    imageLoadErrors.value.has(fullUrl)
+  );
 };
 
 // 将秒格式化为 mm:ss 显示在语音消息上
@@ -2684,7 +2784,7 @@ const sendMessage = async () => {
         }
         return;
       }
-      
+
       // 保存服务器返回的路径用于发送给后端
       // 但前端显示时继续使用本地预览图（base64），避免图片闪烁或加载失败
       const lastIndex = messages.value.length - 1;
@@ -2693,7 +2793,10 @@ const sendMessage = async () => {
         // image_path 保持 base64 以确保显示正常
         messages.value[lastIndex]._serverImagePath = imagePath;
         console.log("✅ 图片上传成功:");
-        console.log("   显示用路径 (base64):", messages.value[lastIndex].image_path?.substring(0, 50) + "...");
+        console.log(
+          "   显示用路径 (base64):",
+          messages.value[lastIndex].image_path?.substring(0, 50) + "..."
+        );
         console.log("   服务器返回路径:", imagePath);
       }
     }
@@ -2706,7 +2809,7 @@ const sendMessage = async () => {
         // 确保发送给后端的是原始路径（服务器返回的路径）
         // 如果 imagePath 是完整 URL，需要提取相对路径
         let pathToSend = imagePath;
-        if (imagePath && typeof imagePath === 'string') {
+        if (imagePath && typeof imagePath === "string") {
           // 如果是完整 URL，提取路径部分
           try {
             const url = new URL(imagePath);
@@ -2714,14 +2817,14 @@ const sendMessage = async () => {
           } catch {
             // 不是完整 URL，直接使用
             // 确保路径格式正确（以 / 开头）
-            if (!pathToSend.startsWith('/') && !pathToSend.startsWith('http')) {
-              pathToSend = '/' + pathToSend;
+            if (!pathToSend.startsWith("/") && !pathToSend.startsWith("http")) {
+              pathToSend = "/" + pathToSend;
             }
           }
         }
-        console.log('📤 发送给后端的图片路径:', pathToSend);
-        console.log('📤 发送内容:', content?.substring(0, 100));
-        console.log('📤 会话ID:', chatStore.currentSessionId);
+        console.log("📤 发送给后端的图片路径:", pathToSend);
+        console.log("📤 发送内容:", content?.substring(0, 100));
+        console.log("📤 会话ID:", chatStore.currentSessionId);
         await chatStore.sendMessageStreamed(content, pathToSend, router);
       } catch (e) {
         console.error("Async send failed:", e);
@@ -2734,7 +2837,7 @@ const sendMessage = async () => {
           console.error("请求参数:", {
             prompt: content?.substring(0, 50),
             session_id: chatStore.currentSessionId,
-            image_path: pathToSend
+            image_path: pathToSend,
           });
         } else {
           console.error("网络错误或请求未发送:", e.message);
