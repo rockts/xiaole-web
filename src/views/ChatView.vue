@@ -2685,47 +2685,16 @@ const sendMessage = async () => {
         return;
       }
       
-      // 更新用户消息的图片路径为服务器返回的路径
-      // 注意：发送给后端使用原始路径，显示时使用规范化路径
-      const normalizedImagePath = formatImagePath(imagePath);
+      // 保存服务器返回的路径用于发送给后端
+      // 但前端显示时继续使用本地预览图（base64），避免图片闪烁或加载失败
       const lastIndex = messages.value.length - 1;
       if (lastIndex >= 0 && messages.value[lastIndex].id === userMsg.id) {
-        // 记录旧路径用于调试
-        const oldPath = messages.value[lastIndex].image_path;
-        // 使用 Vue 3 的响应式更新方式
-        // 直接赋值会触发响应式更新
-        // 显示时使用规范化路径，但发送给后端时使用原始路径
-        messages.value[lastIndex].image_path = normalizedImagePath;
-        console.log("✅ 已更新用户消息的图片路径:");
-        console.log("   旧路径:", oldPath);
+        // 保存服务器路径到消息对象，但不替换显示用的 image_path
+        // image_path 保持 base64 以确保显示正常
+        messages.value[lastIndex]._serverImagePath = imagePath;
+        console.log("✅ 图片上传成功:");
+        console.log("   显示用路径 (base64):", messages.value[lastIndex].image_path?.substring(0, 50) + "...");
         console.log("   服务器返回路径:", imagePath);
-        console.log("   规范化后路径:", normalizedImagePath);
-        console.log("📸 更新后的消息:", JSON.stringify(messages.value[lastIndex], null, 2));
-        // 强制触发 Vue 的响应式更新
-        // 使用 nextTick 确保 DOM 更新
-        await nextTick();
-        console.log("🔄 DOM 已更新，图片应该显示");
-        // 额外检查：如果图片元素存在，尝试强制重新加载
-        // 使用 nextTick 确保 DOM 已经更新
-        await nextTick();
-        const messageElement = document.querySelector(`[data-msg-id="${userMsg.id}"]`);
-        if (messageElement) {
-          const imgElement = messageElement.querySelector('.message-image');
-          if (imgElement) {
-            // 构建完整的图片 URL
-            const currentSrc = imgElement.src;
-            const expectedFullUrl = getFullImageUrl(normalizedImagePath);
-            // 如果当前 src 与期望的不一致，强制更新
-            if (currentSrc !== expectedFullUrl && !normalizedImagePath.startsWith('blob:') && !normalizedImagePath.startsWith('data:')) {
-              console.log("🔄 强制更新图片 src:");
-              console.log("   当前 src:", currentSrc);
-              console.log("   期望 src:", expectedFullUrl);
-              imgElement.src = expectedFullUrl;
-            }
-          }
-        }
-      } else {
-        console.warn("⚠️ 未找到用户消息，无法更新图片路径. lastIndex:", lastIndex, "userMsg.id:", userMsg.id);
       }
     }
 
