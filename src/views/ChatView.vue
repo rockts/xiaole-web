@@ -1322,7 +1322,7 @@ watch(
 
       // 设置3秒超时保护(缩短超时时间)
       loadingTimeout = setTimeout(() => {
-        console.warn("⚠️ 会话加载超时,强制停止加载动画");
+        if (isDev) console.warn("⚠️ 会话加载超时,强制停止加载动画");
         isLoadingSession.value = false;
         if (!sessionLoadError.value) {
           sessionLoadError.value =
@@ -1332,9 +1332,11 @@ watch(
 
       try {
         await chatStore.loadSession(newId);
-        console.log("✅ loadSession 完成,准备显示UI");
-        console.log("📊 当前消息数量:", chatStore.messages.length);
-        console.log("📊 当前会话ID:", chatStore.currentSessionId);
+        if (isDev) {
+          console.log("✅ loadSession 完成,准备显示UI");
+          console.log("📊 当前消息数量:", chatStore.messages.length);
+          console.log("📊 当前会话ID:", chatStore.currentSessionId);
+        }
 
         // 先停止加载动画
         clearTimeout(loadingTimeout);
@@ -1346,7 +1348,6 @@ watch(
         requestAnimationFrame(() => {
           if (chatContainer.value) {
             chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-            console.log("📍 滚动到底部完成");
           }
         });
       } catch (error) {
@@ -1456,27 +1457,6 @@ watch(
     // 如果正在加载会话，不触发自动滚动（由 loadSession 负责初始定位）
     if (isLoadingSession.value) return;
 
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg) {
-      console.log(
-        "📨 Messages updated. Last message status:",
-        lastMsg.status,
-        "Role:",
-        lastMsg.role
-      );
-      // 打印最近 5 条消息的简要信息，帮助排查渲染/内容问题
-      try {
-        const lastFive = messages.value.slice(-5).map((m) => ({
-          id: m.id,
-          role: m.role,
-          status: m.status,
-          len: (m.content || "").length,
-          preview: (m.content || "").slice(0, 80),
-        }));
-        console.log("📋 Last 5 messages summary:", lastFive);
-      } catch (e) {}
-    }
-
     nextTick(() => {
       // 只在用户发送消息后或 AI 正在打字时才滚动
       if (shouldScrollToBottom.value || isTyping.value) {
@@ -1551,16 +1531,11 @@ watch(isTyping, (newVal, oldVal) => {
   if (oldVal && !newVal && isVoiceMode.value) {
     // AI 停止打字，且处于语音模式
     const lastMessage = messages.value[messages.value.length - 1];
-    console.log("🔊 语音模式检测到AI回复完成:", lastMessage);
     if (
       lastMessage &&
       lastMessage.role === "assistant" &&
       lastMessage.messageType !== "voice-session-end"
     ) {
-      console.log(
-        "🔊 准备调用 TTS(无延迟)，内容:",
-        lastMessage.content.substring(0, 50) + "..."
-      );
       speakAndResumeMic(lastMessage.content);
     }
   }
@@ -1596,14 +1571,11 @@ function cleanTtsText(raw) {
 // 语音模式下AI回复自动朗读，朗读结束后自动恢复麦克风监听
 // 语音模式下AI回复自动朗读（Baidu TTS），朗读结束后自动恢复麦克风监听
 async function speakAndResumeMic(text) {
-  console.log("🔊 speakAndResumeMic 被调用，文本长度:", text?.length);
   stopSpeech();
   const voiceId = localStorage.getItem("selectedVoice") || "juniper";
   const person = getPersonFromVoiceId(voiceId);
-  console.log("🔊 使用音色ID:", voiceId, "-> person:", person);
   const clean = cleanTtsText(text);
   try {
-    console.log("🔊 开始请求 TTS API...");
     const data = await api.synthesizeVoice(clean, {
       person,
       speed: 7,
@@ -1614,22 +1586,14 @@ async function speakAndResumeMic(text) {
 
     const base64Audio = data.audio_base64 || data.audio; // 兼容旧字段
     const mimeType = data.mime || data.mime_type;
-    console.log("🔊 TTS 响应数据解析:", {
-      hasAudio: !!base64Audio,
-      mimeType,
-      len: base64Audio?.length,
-      raw: data,
-    });
     if (!base64Audio || !mimeType) throw new Error("TTS 响应无音频");
     const audio = new Audio(`data:${mimeType};base64,${base64Audio}`);
     audio.onplay = () => {
-      console.log("🔊 音频开始播放");
       speakingMessageId.value =
         messages.value[messages.value.length - 1]?.id || null;
       voiceModeDialogRef.value?.startSpeaking();
     };
     audio.onended = () => {
-      console.log("🔊 音频播放完成");
       speakingMessageId.value = null;
       voiceModeDialogRef.value?.stopSpeaking();
       if (isVoiceMode.value && recognition.value && !isRecording.value) {
@@ -1646,9 +1610,7 @@ async function speakAndResumeMic(text) {
       voiceModeDialogRef.value?.stopSpeaking();
     };
     currentSpeech = audio;
-    console.log("🔊 准备播放音频...");
     await audio.play();
-    console.log("🔊 音频播放命令已发送");
   } catch (err) {
     speakingMessageId.value = null;
     console.error("🔊 TTS 播放失败:", err);
@@ -2726,25 +2688,14 @@ const sendMessage = async () => {
   };
   messages.value.push(userMsg);
 
-  console.log("✅ 用户消息已添加:", userMsg);
-  console.log("📸 图片路径 (初始):", userMsg.image_path);
-  console.log(
-    "📤 准备发送消息. 内容长度:",
-    content?.length,
-    "是否有文件:",
-    !!currentFile
-  );
-
   // 设置标志位：需要滚动到底部
   shouldScrollToBottom.value = true;
 
   try {
     // 如果有文件，先上传
     if (currentFile) {
-      console.log("📤 开始上传图片...", currentFile.name);
       // 显示上传状态（可选，目前直接用打字状态覆盖）
       imagePath = await chatStore.uploadImage(currentFile);
-      console.log("✅ 图片上传结果:", imagePath);
 
       if (!imagePath) {
         console.error("❌ 图片上传返回空路径");
@@ -2770,12 +2721,6 @@ const sendMessage = async () => {
         // 保存服务器路径到消息对象，但不替换显示用的 image_path
         // image_path 保持 base64 以确保显示正常
         messages.value[lastIndex]._serverImagePath = imagePath;
-        console.log("✅ 图片上传成功:");
-        console.log(
-          "   显示用路径 (base64):",
-          messages.value[lastIndex].image_path?.substring(0, 50) + "..."
-        );
-        console.log("   服务器返回路径:", imagePath);
       }
     }
 
@@ -2800,30 +2745,13 @@ const sendMessage = async () => {
             }
           }
         }
-        console.log("📤 发送给后端的图片路径:", pathToSend);
-        console.log("📤 发送内容:", content?.substring(0, 100));
-        console.log("📤 会话ID:", chatStore.currentSessionId);
         await chatStore.sendMessageStreamed(content, pathToSend, router);
       } catch (e) {
-        console.error("Async send failed:", e);
-        // 显示更详细的错误信息
-        if (e.response) {
-          console.error("错误响应:", e.response.data);
-          console.error("错误状态:", e.response.status);
-          console.error("错误状态文本:", e.response.statusText);
-          console.error("请求URL:", e.config?.url);
-          console.error("请求参数:", {
-            prompt: content?.substring(0, 50),
-            session_id: chatStore.currentSessionId,
-            image_path: pathToSend,
-          });
-        } else {
-          console.error("网络错误或请求未发送:", e.message);
-        }
+        console.error("发送消息失败:", e.message);
       }
     }, 0);
   } catch (e) {
-    console.error("Send message failed:", e);
+    console.error("发送消息失败:", e);
     messages.value.push({
       id: `error-${Date.now()}`,
       role: "assistant",
@@ -2841,18 +2769,15 @@ const sendMessage = async () => {
   // 增加延迟到3秒，确保AI响应和工具执行都已完成
   setTimeout(() => {
     if (needsReminderRefresh) {
-      console.log("🔄 触发提醒列表刷新");
       window.dispatchEvent(new CustomEvent("refresh-reminders"));
     }
     if (needsTaskRefresh) {
-      console.log("🔄 触发任务列表刷新");
       window.dispatchEvent(new CustomEvent("refresh-tasks"));
     }
   }, 3000);
 };
 
 const stopGeneration = () => {
-  console.log("停止 AI 生成");
   chatStore.stopGeneration();
 };
 
@@ -3281,7 +3206,6 @@ const onVoiceModeVisibleChange = (val) => {
 const handleVoiceMessage = async (data) => {
   // 移除 isTyping 限制，允许用户在上一条AI回复播放或打字时继续说话
   if (!data.content) return;
-  console.log("🎤 接收到语音消息:", data.content, "isTyping=", isTyping.value);
 
   // 添加用户语音消息
   messages.value.push({
@@ -3308,7 +3232,6 @@ const handleVoiceMessage = async (data) => {
 
 // 处理语音音色切换
 const handleVoiceChange = (voice) => {
-  console.log("选择语音:", voice, "-> person:", getPersonFromVoiceId(voice));
   // 保存到本地存储（保存音色ID，使用时转换为person数字）
   localStorage.setItem("selectedVoice", voice);
 };
@@ -3356,7 +3279,7 @@ onMounted(() => {
   // 终极超时保护：如果10秒后还在加载,强制停止
   setTimeout(() => {
     if (isLoadingSession.value) {
-      console.warn("⚠️ 检测到长时间加载,强制停止加载动画");
+      if (isDev) console.warn("⚠️ 检测到长时间加载,强制停止加载动画");
       isLoadingSession.value = false;
     }
   }, 10000);
@@ -3408,7 +3331,6 @@ onMounted(() => {
     if (!isVoiceMode.value) return;
     const text = e.detail?.text;
     if (text) {
-      console.log("🔊 捕获 voiceAssistantReply 事件，触发朗读");
       speakAndResumeMic(text);
     }
   };

@@ -24,9 +24,6 @@ api.interceptors.request.use(
         const authStore = useAuthStore()
         if (authStore.token) {
             config.headers.Authorization = `Bearer ${authStore.token}`
-            console.log('🔐 Token 已注入，长度:', authStore.token.length)
-        } else {
-            console.warn('⚠️ 未找到 Token，authStore.token 为空')
         }
 
         // 如果请求数据是 FormData，删除默认的 Content-Type
@@ -34,10 +31,6 @@ api.interceptors.request.use(
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type']
         }
-
-        // 调试日志：打印请求信息
-        console.log('📤 API 请求:', config.method?.toUpperCase(), config.url)
-        console.log('📤 请求头:', JSON.stringify(config.headers, null, 2))
 
         // 初始化重试计数
         config.retryCount = config.retryCount || 0
@@ -337,13 +330,8 @@ export default {
     getDocuments(limit = 50) {
         // 从auth store获取登录用户名,如果没有使用admin
         const authStore = useAuthStore();
-        console.log('🔍 authStore.user:', authStore.user);
-        console.log('🔍 authStore.token:', authStore.token ? '有token' : '无token');
         const username = authStore.user?.username || 'admin';
-        console.log('🔍 getDocuments - 使用登录用户名:', username);
-        const url = `/documents/users/${username}`;
-        console.log('🔍 请求URL:', url);
-        return api.get(url, { params: { limit } })
+        return api.get(`/documents/users/${username}`, { params: { limit } })
     },
 
     getDocument(docId) {
