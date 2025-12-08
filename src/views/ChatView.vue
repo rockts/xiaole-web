@@ -1676,106 +1676,106 @@ const renderMarkdown = (content) => {
     // ===== 第零步：修复被错误拆分的 LaTeX 命令 =====
     // 修复严重破坏的 LaTeX 命令，包括多次拆分的情况
     // 例如: \alp$h$a -> $\alpha$, \be$t$a -> $\beta$, \gam$m$a -> $\gamma$
-    
+
     // 定义希腊字母及其所有可能的拆分模式
     const greekLetterPatterns = [
       // alpha 的各种拆分
-      { pattern: /\$?\\alp\$h\$a\$?/g, replacement: '$\\alpha$' },
-      { pattern: /\$?\\alph\$a\$?/g, replacement: '$\\alpha$' },
-      { pattern: /\$?\\al\$pha\$?/g, replacement: '$\\alpha$' },
-      { pattern: /\$?\\a\$lpha\$?/g, replacement: '$\\alpha$' },
-      { pattern: /\\alpha\$(?!\$)/g, replacement: '$\\alpha$' },
-      { pattern: /(?<!\$)\$\\alpha(?!\$)/g, replacement: '$\\alpha$' },
-      
+      { pattern: /\$?\\alp\$h\$a\$?/g, replacement: "$\\alpha$" },
+      { pattern: /\$?\\alph\$a\$?/g, replacement: "$\\alpha$" },
+      { pattern: /\$?\\al\$pha\$?/g, replacement: "$\\alpha$" },
+      { pattern: /\$?\\a\$lpha\$?/g, replacement: "$\\alpha$" },
+      { pattern: /\\alpha\$(?!\$)/g, replacement: "$\\alpha$" },
+      { pattern: /(?<!\$)\$\\alpha(?!\$)/g, replacement: "$\\alpha$" },
+
       // beta 的各种拆分
-      { pattern: /\$?\\be\$t\$a\$?/g, replacement: '$\\beta$' },
-      { pattern: /\$?\\bet\$a\$?/g, replacement: '$\\beta$' },
-      { pattern: /\$?\\b\$eta\$?/g, replacement: '$\\beta$' },
-      { pattern: /\\beta\$(?!\$)/g, replacement: '$\\beta$' },
-      { pattern: /(?<!\$)\$\\beta(?!\$)/g, replacement: '$\\beta$' },
-      
+      { pattern: /\$?\\be\$t\$a\$?/g, replacement: "$\\beta$" },
+      { pattern: /\$?\\bet\$a\$?/g, replacement: "$\\beta$" },
+      { pattern: /\$?\\b\$eta\$?/g, replacement: "$\\beta$" },
+      { pattern: /\\beta\$(?!\$)/g, replacement: "$\\beta$" },
+      { pattern: /(?<!\$)\$\\beta(?!\$)/g, replacement: "$\\beta$" },
+
       // gamma 的各种拆分
-      { pattern: /\$?\\gam\$m\$a\$?/g, replacement: '$\\gamma$' },
-      { pattern: /\$?\\gamm\$a\$?/g, replacement: '$\\gamma$' },
-      { pattern: /\$?\\ga\$mma\$?/g, replacement: '$\\gamma$' },
-      { pattern: /\$?\\g\$amma\$?/g, replacement: '$\\gamma$' },
-      { pattern: /\\gamma\$(?!\$)/g, replacement: '$\\gamma$' },
-      { pattern: /(?<!\$)\$\\gamma(?!\$)/g, replacement: '$\\gamma$' },
-      
+      { pattern: /\$?\\gam\$m\$a\$?/g, replacement: "$\\gamma$" },
+      { pattern: /\$?\\gamm\$a\$?/g, replacement: "$\\gamma$" },
+      { pattern: /\$?\\ga\$mma\$?/g, replacement: "$\\gamma$" },
+      { pattern: /\$?\\g\$amma\$?/g, replacement: "$\\gamma$" },
+      { pattern: /\\gamma\$(?!\$)/g, replacement: "$\\gamma$" },
+      { pattern: /(?<!\$)\$\\gamma(?!\$)/g, replacement: "$\\gamma$" },
+
       // delta 的各种拆分
-      { pattern: /\$?\\del\$t\$a\$?/g, replacement: '$\\delta$' },
-      { pattern: /\$?\\delt\$a\$?/g, replacement: '$\\delta$' },
-      { pattern: /\$?\\de\$lta\$?/g, replacement: '$\\delta$' },
-      { pattern: /\\delta\$(?!\$)/g, replacement: '$\\delta$' },
-      { pattern: /(?<!\$)\$\\delta(?!\$)/g, replacement: '$\\delta$' },
-      
+      { pattern: /\$?\\del\$t\$a\$?/g, replacement: "$\\delta$" },
+      { pattern: /\$?\\delt\$a\$?/g, replacement: "$\\delta$" },
+      { pattern: /\$?\\de\$lta\$?/g, replacement: "$\\delta$" },
+      { pattern: /\\delta\$(?!\$)/g, replacement: "$\\delta$" },
+      { pattern: /(?<!\$)\$\\delta(?!\$)/g, replacement: "$\\delta$" },
+
       // epsilon 的各种拆分
-      { pattern: /\$?\\epsi\$l\$on\$?/g, replacement: '$\\epsilon$' },
-      { pattern: /\$?\\epsil\$on\$?/g, replacement: '$\\epsilon$' },
-      { pattern: /\$?\\epsilon\$(?!\$)/g, replacement: '$\\epsilon$' },
-      
+      { pattern: /\$?\\epsi\$l\$on\$?/g, replacement: "$\\epsilon$" },
+      { pattern: /\$?\\epsil\$on\$?/g, replacement: "$\\epsilon$" },
+      { pattern: /\$?\\epsilon\$(?!\$)/g, replacement: "$\\epsilon$" },
+
       // theta 的各种拆分
-      { pattern: /\$?\\the\$t\$a\$?/g, replacement: '$\\theta$' },
-      { pattern: /\$?\\thet\$a\$?/g, replacement: '$\\theta$' },
-      { pattern: /\$?\\th\$eta\$?/g, replacement: '$\\theta$' },
-      { pattern: /\\theta\$(?!\$)/g, replacement: '$\\theta$' },
-      { pattern: /(?<!\$)\$\\theta(?!\$)/g, replacement: '$\\theta$' },
-      
+      { pattern: /\$?\\the\$t\$a\$?/g, replacement: "$\\theta$" },
+      { pattern: /\$?\\thet\$a\$?/g, replacement: "$\\theta$" },
+      { pattern: /\$?\\th\$eta\$?/g, replacement: "$\\theta$" },
+      { pattern: /\\theta\$(?!\$)/g, replacement: "$\\theta$" },
+      { pattern: /(?<!\$)\$\\theta(?!\$)/g, replacement: "$\\theta$" },
+
       // lambda 的各种拆分
-      { pattern: /\$?\\lam\$b\$da\$?/g, replacement: '$\\lambda$' },
-      { pattern: /\$?\\lamb\$da\$?/g, replacement: '$\\lambda$' },
-      { pattern: /\$?\\lambd\$a\$?/g, replacement: '$\\lambda$' },
-      { pattern: /\\lambda\$(?!\$)/g, replacement: '$\\lambda$' },
-      { pattern: /(?<!\$)\$\\lambda(?!\$)/g, replacement: '$\\lambda$' },
-      
+      { pattern: /\$?\\lam\$b\$da\$?/g, replacement: "$\\lambda$" },
+      { pattern: /\$?\\lamb\$da\$?/g, replacement: "$\\lambda$" },
+      { pattern: /\$?\\lambd\$a\$?/g, replacement: "$\\lambda$" },
+      { pattern: /\\lambda\$(?!\$)/g, replacement: "$\\lambda$" },
+      { pattern: /(?<!\$)\$\\lambda(?!\$)/g, replacement: "$\\lambda$" },
+
       // sigma 的各种拆分
-      { pattern: /\$?\\sig\$m\$a\$?/g, replacement: '$\\sigma$' },
-      { pattern: /\$?\\sigm\$a\$?/g, replacement: '$\\sigma$' },
-      { pattern: /\$?\\si\$gma\$?/g, replacement: '$\\sigma$' },
-      { pattern: /\\sigma\$(?!\$)/g, replacement: '$\\sigma$' },
-      { pattern: /(?<!\$)\$\\sigma(?!\$)/g, replacement: '$\\sigma$' },
-      
+      { pattern: /\$?\\sig\$m\$a\$?/g, replacement: "$\\sigma$" },
+      { pattern: /\$?\\sigm\$a\$?/g, replacement: "$\\sigma$" },
+      { pattern: /\$?\\si\$gma\$?/g, replacement: "$\\sigma$" },
+      { pattern: /\\sigma\$(?!\$)/g, replacement: "$\\sigma$" },
+      { pattern: /(?<!\$)\$\\sigma(?!\$)/g, replacement: "$\\sigma$" },
+
       // omega 的各种拆分
-      { pattern: /\$?\\ome\$g\$a\$?/g, replacement: '$\\omega$' },
-      { pattern: /\$?\\omeg\$a\$?/g, replacement: '$\\omega$' },
-      { pattern: /\$?\\om\$ega\$?/g, replacement: '$\\omega$' },
-      { pattern: /\\omega\$(?!\$)/g, replacement: '$\\omega$' },
-      { pattern: /(?<!\$)\$\\omega(?!\$)/g, replacement: '$\\omega$' },
-      
+      { pattern: /\$?\\ome\$g\$a\$?/g, replacement: "$\\omega$" },
+      { pattern: /\$?\\omeg\$a\$?/g, replacement: "$\\omega$" },
+      { pattern: /\$?\\om\$ega\$?/g, replacement: "$\\omega$" },
+      { pattern: /\\omega\$(?!\$)/g, replacement: "$\\omega$" },
+      { pattern: /(?<!\$)\$\\omega(?!\$)/g, replacement: "$\\omega$" },
+
       // pi, mu, nu, xi 等短希腊字母
-      { pattern: /\$?\\p\$i\$?/g, replacement: '$\\pi$' },
-      { pattern: /\\pi\$(?!\$)/g, replacement: '$\\pi$' },
-      { pattern: /(?<!\$)\$\\pi(?!\$)/g, replacement: '$\\pi$' },
-      { pattern: /\$?\\m\$u\$?/g, replacement: '$\\mu$' },
-      { pattern: /\\mu\$(?!\$)/g, replacement: '$\\mu$' },
-      { pattern: /(?<!\$)\$\\mu(?!\$)/g, replacement: '$\\mu$' },
-      { pattern: /\$?\\n\$u\$?/g, replacement: '$\\nu$' },
-      { pattern: /\\nu\$(?!\$)/g, replacement: '$\\nu$' },
-      { pattern: /(?<!\$)\$\\nu(?!\$)/g, replacement: '$\\nu$' },
-      { pattern: /\$?\\x\$i\$?/g, replacement: '$\\xi$' },
-      { pattern: /\\xi\$(?!\$)/g, replacement: '$\\xi$' },
-      { pattern: /(?<!\$)\$\\xi(?!\$)/g, replacement: '$\\xi$' },
-      
+      { pattern: /\$?\\p\$i\$?/g, replacement: "$\\pi$" },
+      { pattern: /\\pi\$(?!\$)/g, replacement: "$\\pi$" },
+      { pattern: /(?<!\$)\$\\pi(?!\$)/g, replacement: "$\\pi$" },
+      { pattern: /\$?\\m\$u\$?/g, replacement: "$\\mu$" },
+      { pattern: /\\mu\$(?!\$)/g, replacement: "$\\mu$" },
+      { pattern: /(?<!\$)\$\\mu(?!\$)/g, replacement: "$\\mu$" },
+      { pattern: /\$?\\n\$u\$?/g, replacement: "$\\nu$" },
+      { pattern: /\\nu\$(?!\$)/g, replacement: "$\\nu$" },
+      { pattern: /(?<!\$)\$\\nu(?!\$)/g, replacement: "$\\nu$" },
+      { pattern: /\$?\\x\$i\$?/g, replacement: "$\\xi$" },
+      { pattern: /\\xi\$(?!\$)/g, replacement: "$\\xi$" },
+      { pattern: /(?<!\$)\$\\xi(?!\$)/g, replacement: "$\\xi$" },
+
       // phi, psi, chi, eta, zeta, rho, tau, upsilon, iota, kappa
-      { pattern: /\$?\\ph\$i\$?/g, replacement: '$\\phi$' },
-      { pattern: /\\phi\$(?!\$)/g, replacement: '$\\phi$' },
-      { pattern: /\$?\\ps\$i\$?/g, replacement: '$\\psi$' },
-      { pattern: /\\psi\$(?!\$)/g, replacement: '$\\psi$' },
-      { pattern: /\$?\\ch\$i\$?/g, replacement: '$\\chi$' },
-      { pattern: /\\chi\$(?!\$)/g, replacement: '$\\chi$' },
-      { pattern: /\$?\\et\$a\$?/g, replacement: '$\\eta$' },
-      { pattern: /\\eta\$(?!\$)/g, replacement: '$\\eta$' },
-      { pattern: /\$?\\zet\$a\$?/g, replacement: '$\\zeta$' },
-      { pattern: /\\zeta\$(?!\$)/g, replacement: '$\\zeta$' },
-      { pattern: /\$?\\rh\$o\$?/g, replacement: '$\\rho$' },
-      { pattern: /\\rho\$(?!\$)/g, replacement: '$\\rho$' },
-      { pattern: /\$?\\ta\$u\$?/g, replacement: '$\\tau$' },
-      { pattern: /\\tau\$(?!\$)/g, replacement: '$\\tau$' },
-      { pattern: /\$?\\iota\$(?!\$)/g, replacement: '$\\iota$' },
-      { pattern: /\$?\\kappa\$(?!\$)/g, replacement: '$\\kappa$' },
-      { pattern: /\$?\\upsilon\$(?!\$)/g, replacement: '$\\upsilon$' },
+      { pattern: /\$?\\ph\$i\$?/g, replacement: "$\\phi$" },
+      { pattern: /\\phi\$(?!\$)/g, replacement: "$\\phi$" },
+      { pattern: /\$?\\ps\$i\$?/g, replacement: "$\\psi$" },
+      { pattern: /\\psi\$(?!\$)/g, replacement: "$\\psi$" },
+      { pattern: /\$?\\ch\$i\$?/g, replacement: "$\\chi$" },
+      { pattern: /\\chi\$(?!\$)/g, replacement: "$\\chi$" },
+      { pattern: /\$?\\et\$a\$?/g, replacement: "$\\eta$" },
+      { pattern: /\\eta\$(?!\$)/g, replacement: "$\\eta$" },
+      { pattern: /\$?\\zet\$a\$?/g, replacement: "$\\zeta$" },
+      { pattern: /\\zeta\$(?!\$)/g, replacement: "$\\zeta$" },
+      { pattern: /\$?\\rh\$o\$?/g, replacement: "$\\rho$" },
+      { pattern: /\\rho\$(?!\$)/g, replacement: "$\\rho$" },
+      { pattern: /\$?\\ta\$u\$?/g, replacement: "$\\tau$" },
+      { pattern: /\\tau\$(?!\$)/g, replacement: "$\\tau$" },
+      { pattern: /\$?\\iota\$(?!\$)/g, replacement: "$\\iota$" },
+      { pattern: /\$?\\kappa\$(?!\$)/g, replacement: "$\\kappa$" },
+      { pattern: /\$?\\upsilon\$(?!\$)/g, replacement: "$\\upsilon$" },
     ];
-    
+
     // 应用所有修复模式
     greekLetterPatterns.forEach(({ pattern, replacement }) => {
       preprocessed = preprocessed.replace(pattern, replacement);
@@ -1783,9 +1783,9 @@ const renderMarkdown = (content) => {
 
     // 修复 $$a$ → $a$（多余的 $）
     preprocessed = preprocessed.replace(/\$\$([a-z])\$/g, "$$$1$$");
-    
+
     // 清理多余的连续 $ 符号
-    preprocessed = preprocessed.replace(/\$\$\$/g, '$$');
+    preprocessed = preprocessed.replace(/\$\$\$/g, "$$");
   }
 
   // ===== 第一步：标准化 LaTeX 分隔符（始终执行）=====
@@ -2208,6 +2208,17 @@ const formatImagePath = (path) => {
   if (!normalizedPath.startsWith("/")) {
     normalizedPath = "/" + normalizedPath;
   }
+  
+  // 生产环境：图片存储在后端服务器，需要拼接 API 基础 URL
+  const apiBase = import.meta.env.VITE_API_BASE;
+  if (apiBase) {
+    const fullUrl = `${apiBase}${normalizedPath}`;
+    if (import.meta.env.DEV) {
+      console.log(`[formatImagePath] 生产环境图片 URL: "${fullUrl}"`);
+    }
+    return fullUrl;
+  }
+  
   // 调试日志（开发环境）
   if (import.meta.env.DEV && path !== normalizedPath) {
     console.log(
