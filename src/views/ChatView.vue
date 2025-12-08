@@ -1663,8 +1663,9 @@ const renderMarkdown = (content) => {
 
   // ===== 预检测：判断是否需要修复 =====
   // 检测错误的 LaTeX 格式：被拆分的命令，如 \alph$a, $\bet$a, \alpha$, $\beta 等
+  // 也检测多次拆分的情况，如 \alp$h$a, \be$t$a, \gam$m$a
   const hasBrokenLatex =
-    /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]|\\[a-zA-Z]+\$(?!\$)|(?<!\$)\$\\[a-zA-Z]+(?!\$)|[a-z]\$(?=[，。、\s])|(?<!\$)\$[a-z](?!\$)/.test(
+    /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]|\\[a-zA-Z]+\$(?!\$)|(?<!\$)\$\\[a-zA-Z]+(?!\$)|[a-z]\$(?=[，。、\s])|(?<!\$)\$[a-z](?!\$)|\\[a-zA-Z]+\$[a-z]\$[a-z]/.test(
       content
     );
 
@@ -1673,53 +1674,118 @@ const renderMarkdown = (content) => {
 
   if (needsRepair) {
     // ===== 第零步：修复被错误拆分的 LaTeX 命令 =====
-    // 修复 $\bet$a -> $\beta$, \gamm$a -> $\gamma$, 等
-    // 这个步骤必须在标准化分隔符之前，因为原始内容可能包含错误拆分的命令
-    const greekLetters = [
-      "alpha",
-      "beta",
-      "gamma",
-      "delta",
-      "epsilon",
-      "zeta",
-      "eta",
-      "theta",
-      "iota",
-      "kappa",
-      "lambda",
-      "mu",
-      "nu",
-      "xi",
-      "pi",
-      "rho",
-      "sigma",
-      "tau",
-      "upsilon",
-      "phi",
-      "chi",
-      "psi",
-      "omega",
+    // 修复严重破坏的 LaTeX 命令，包括多次拆分的情况
+    // 例如: \alp$h$a -> $\alpha$, \be$t$a -> $\beta$, \gam$m$a -> $\gamma$
+    
+    // 定义希腊字母及其所有可能的拆分模式
+    const greekLetterPatterns = [
+      // alpha 的各种拆分
+      { pattern: /\$?\\alp\$h\$a\$?/g, replacement: '$\\alpha$' },
+      { pattern: /\$?\\alph\$a\$?/g, replacement: '$\\alpha$' },
+      { pattern: /\$?\\al\$pha\$?/g, replacement: '$\\alpha$' },
+      { pattern: /\$?\\a\$lpha\$?/g, replacement: '$\\alpha$' },
+      { pattern: /\\alpha\$(?!\$)/g, replacement: '$\\alpha$' },
+      { pattern: /(?<!\$)\$\\alpha(?!\$)/g, replacement: '$\\alpha$' },
+      
+      // beta 的各种拆分
+      { pattern: /\$?\\be\$t\$a\$?/g, replacement: '$\\beta$' },
+      { pattern: /\$?\\bet\$a\$?/g, replacement: '$\\beta$' },
+      { pattern: /\$?\\b\$eta\$?/g, replacement: '$\\beta$' },
+      { pattern: /\\beta\$(?!\$)/g, replacement: '$\\beta$' },
+      { pattern: /(?<!\$)\$\\beta(?!\$)/g, replacement: '$\\beta$' },
+      
+      // gamma 的各种拆分
+      { pattern: /\$?\\gam\$m\$a\$?/g, replacement: '$\\gamma$' },
+      { pattern: /\$?\\gamm\$a\$?/g, replacement: '$\\gamma$' },
+      { pattern: /\$?\\ga\$mma\$?/g, replacement: '$\\gamma$' },
+      { pattern: /\$?\\g\$amma\$?/g, replacement: '$\\gamma$' },
+      { pattern: /\\gamma\$(?!\$)/g, replacement: '$\\gamma$' },
+      { pattern: /(?<!\$)\$\\gamma(?!\$)/g, replacement: '$\\gamma$' },
+      
+      // delta 的各种拆分
+      { pattern: /\$?\\del\$t\$a\$?/g, replacement: '$\\delta$' },
+      { pattern: /\$?\\delt\$a\$?/g, replacement: '$\\delta$' },
+      { pattern: /\$?\\de\$lta\$?/g, replacement: '$\\delta$' },
+      { pattern: /\\delta\$(?!\$)/g, replacement: '$\\delta$' },
+      { pattern: /(?<!\$)\$\\delta(?!\$)/g, replacement: '$\\delta$' },
+      
+      // epsilon 的各种拆分
+      { pattern: /\$?\\epsi\$l\$on\$?/g, replacement: '$\\epsilon$' },
+      { pattern: /\$?\\epsil\$on\$?/g, replacement: '$\\epsilon$' },
+      { pattern: /\$?\\epsilon\$(?!\$)/g, replacement: '$\\epsilon$' },
+      
+      // theta 的各种拆分
+      { pattern: /\$?\\the\$t\$a\$?/g, replacement: '$\\theta$' },
+      { pattern: /\$?\\thet\$a\$?/g, replacement: '$\\theta$' },
+      { pattern: /\$?\\th\$eta\$?/g, replacement: '$\\theta$' },
+      { pattern: /\\theta\$(?!\$)/g, replacement: '$\\theta$' },
+      { pattern: /(?<!\$)\$\\theta(?!\$)/g, replacement: '$\\theta$' },
+      
+      // lambda 的各种拆分
+      { pattern: /\$?\\lam\$b\$da\$?/g, replacement: '$\\lambda$' },
+      { pattern: /\$?\\lamb\$da\$?/g, replacement: '$\\lambda$' },
+      { pattern: /\$?\\lambd\$a\$?/g, replacement: '$\\lambda$' },
+      { pattern: /\\lambda\$(?!\$)/g, replacement: '$\\lambda$' },
+      { pattern: /(?<!\$)\$\\lambda(?!\$)/g, replacement: '$\\lambda$' },
+      
+      // sigma 的各种拆分
+      { pattern: /\$?\\sig\$m\$a\$?/g, replacement: '$\\sigma$' },
+      { pattern: /\$?\\sigm\$a\$?/g, replacement: '$\\sigma$' },
+      { pattern: /\$?\\si\$gma\$?/g, replacement: '$\\sigma$' },
+      { pattern: /\\sigma\$(?!\$)/g, replacement: '$\\sigma$' },
+      { pattern: /(?<!\$)\$\\sigma(?!\$)/g, replacement: '$\\sigma$' },
+      
+      // omega 的各种拆分
+      { pattern: /\$?\\ome\$g\$a\$?/g, replacement: '$\\omega$' },
+      { pattern: /\$?\\omeg\$a\$?/g, replacement: '$\\omega$' },
+      { pattern: /\$?\\om\$ega\$?/g, replacement: '$\\omega$' },
+      { pattern: /\\omega\$(?!\$)/g, replacement: '$\\omega$' },
+      { pattern: /(?<!\$)\$\\omega(?!\$)/g, replacement: '$\\omega$' },
+      
+      // pi, mu, nu, xi 等短希腊字母
+      { pattern: /\$?\\p\$i\$?/g, replacement: '$\\pi$' },
+      { pattern: /\\pi\$(?!\$)/g, replacement: '$\\pi$' },
+      { pattern: /(?<!\$)\$\\pi(?!\$)/g, replacement: '$\\pi$' },
+      { pattern: /\$?\\m\$u\$?/g, replacement: '$\\mu$' },
+      { pattern: /\\mu\$(?!\$)/g, replacement: '$\\mu$' },
+      { pattern: /(?<!\$)\$\\mu(?!\$)/g, replacement: '$\\mu$' },
+      { pattern: /\$?\\n\$u\$?/g, replacement: '$\\nu$' },
+      { pattern: /\\nu\$(?!\$)/g, replacement: '$\\nu$' },
+      { pattern: /(?<!\$)\$\\nu(?!\$)/g, replacement: '$\\nu$' },
+      { pattern: /\$?\\x\$i\$?/g, replacement: '$\\xi$' },
+      { pattern: /\\xi\$(?!\$)/g, replacement: '$\\xi$' },
+      { pattern: /(?<!\$)\$\\xi(?!\$)/g, replacement: '$\\xi$' },
+      
+      // phi, psi, chi, eta, zeta, rho, tau, upsilon, iota, kappa
+      { pattern: /\$?\\ph\$i\$?/g, replacement: '$\\phi$' },
+      { pattern: /\\phi\$(?!\$)/g, replacement: '$\\phi$' },
+      { pattern: /\$?\\ps\$i\$?/g, replacement: '$\\psi$' },
+      { pattern: /\\psi\$(?!\$)/g, replacement: '$\\psi$' },
+      { pattern: /\$?\\ch\$i\$?/g, replacement: '$\\chi$' },
+      { pattern: /\\chi\$(?!\$)/g, replacement: '$\\chi$' },
+      { pattern: /\$?\\et\$a\$?/g, replacement: '$\\eta$' },
+      { pattern: /\\eta\$(?!\$)/g, replacement: '$\\eta$' },
+      { pattern: /\$?\\zet\$a\$?/g, replacement: '$\\zeta$' },
+      { pattern: /\\zeta\$(?!\$)/g, replacement: '$\\zeta$' },
+      { pattern: /\$?\\rh\$o\$?/g, replacement: '$\\rho$' },
+      { pattern: /\\rho\$(?!\$)/g, replacement: '$\\rho$' },
+      { pattern: /\$?\\ta\$u\$?/g, replacement: '$\\tau$' },
+      { pattern: /\\tau\$(?!\$)/g, replacement: '$\\tau$' },
+      { pattern: /\$?\\iota\$(?!\$)/g, replacement: '$\\iota$' },
+      { pattern: /\$?\\kappa\$(?!\$)/g, replacement: '$\\kappa$' },
+      { pattern: /\$?\\upsilon\$(?!\$)/g, replacement: '$\\upsilon$' },
     ];
-
-    greekLetters.forEach((letter) => {
-      // 修复各种错误拆分模式
-      const partialPatterns = [];
-      for (let i = 1; i < letter.length; i++) {
-        const part1 = letter.slice(0, i);
-        const part2 = letter.slice(i);
-        partialPatterns.push(new RegExp(`\\\\${part1}\\$${part2}(?!\\w)`, "g"));
-        partialPatterns.push(new RegExp(`\\\\${part1}\\$\\$${part2}\\$`, "g"));
-        partialPatterns.push(
-          new RegExp(`\\$\\\\${part1}\\$${part2}(?!\\w)`, "g")
-        );
-      }
-      partialPatterns.forEach((pattern) => {
-        preprocessed = preprocessed.replace(pattern, `$\\${letter}$`);
-      });
+    
+    // 应用所有修复模式
+    greekLetterPatterns.forEach(({ pattern, replacement }) => {
+      preprocessed = preprocessed.replace(pattern, replacement);
     });
 
     // 修复 $$a$ → $a$（多余的 $）
     preprocessed = preprocessed.replace(/\$\$([a-z])\$/g, "$$$1$$");
+    
+    // 清理多余的连续 $ 符号
+    preprocessed = preprocessed.replace(/\$\$\$/g, '$$');
   }
 
   // ===== 第一步：标准化 LaTeX 分隔符（始终执行）=====
