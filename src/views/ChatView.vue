@@ -1662,14 +1662,14 @@ const renderMarkdown = (content) => {
   let preprocessed = content;
 
   // ===== 预检测：判断是否需要修复 =====
-  // 如果内容包含正确格式的 LaTeX（如 $\alpha$, $\beta$），则跳过激进的修复
-  // 正确的 LaTeX 格式：$\command$ 或 $$formula$$
-  const hasCorrectLatex = /\$\\[a-zA-Z]+\$|\$\$[\s\S]+?\$\$/.test(content);
-  // 错误的 LaTeX 格式：被拆分的命令，如 \alph$a, $\bet$a 等
-  const hasBrokenLatex = /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]/.test(content);
-  
-  // 只有当检测到错误格式且没有正确格式时，才进行修复
-  const needsRepair = hasBrokenLatex && !hasCorrectLatex;
+  // 检测错误的 LaTeX 格式：被拆分的命令，如 \alph$a, $\bet$a, \alpha$, $\beta 等
+  const hasBrokenLatex =
+    /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]|\\[a-zA-Z]+\$(?!\$)|(?<!\$)\$\\[a-zA-Z]+(?!\$)|[a-z]\$(?=[，。、\s])|(?<!\$)\$[a-z](?!\$)/.test(
+      content
+    );
+
+  // 只要检测到任何错误格式，就进行修复
+  const needsRepair = hasBrokenLatex;
 
   if (needsRepair) {
     // ===== 第零步：修复被错误拆分的 LaTeX 命令 =====
