@@ -2,9 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, nextTick } from 'vue'
 import api from '@/services/api'
 
-// 开发环境标志
-const isDev = import.meta.env.DEV
-
 export const useChatStore = defineStore('chat', () => {
     const sessions = ref([])
     const messages = ref([])
@@ -22,8 +19,13 @@ export const useChatStore = defineStore('chat', () => {
                 ...s,
                 id: s.session_id || s.id
             }))
-            if (isDev) {
-                console.log('✅ Sessions loaded:', sessions.value.length)
+            console.log('✅ Sessions loaded:', sessions.value.length)
+            if (sessions.value.length > 0) {
+                console.log('📋 最新3条会话:', sessions.value.slice(0, 3).map(s => ({
+                    title: s.title,
+                    updated_at: s.updated_at,
+                    id: s.id || s.session_id
+                })))
             }
         } catch (error) {
             console.error('Failed to load sessions:', error)
@@ -34,13 +36,11 @@ export const useChatStore = defineStore('chat', () => {
 
     const loadSession = async (sessionId) => {
         try {
-            if (isDev) console.log('🔄 Loading session:', sessionId)
+            console.log('🔄 Loading session:', sessionId)
             // 请求更多历史记录，防止长对话被截断
             const data = await api.getSession(sessionId, 500)
-            if (isDev) {
-                console.log('📦 Session data received:', data)
-                console.log('💬 Messages:', data.messages || data.history || [])
-            }
+            console.log('📦 Session data received:', data)
+            console.log('💬 Messages:', data.messages || data.history || [])
 
             // 确保数据格式正确
             if (!data) {
@@ -71,11 +71,12 @@ export const useChatStore = defineStore('chat', () => {
                 return processedMsg
             })
             currentSessionId.value = sessionId
-            if (isDev) console.log('✅ Session loaded, messages count:', messages.value.length)
+            console.log('✅ Session loaded, messages count:', messages.value.length)
         } catch (error) {
             console.error('❌ Failed to load session:', error)
             // 如果是 404，清空会话数据，避免显示错误
             if (error.response?.status === 404) {
+                console.warn('会话不存在或已删除，清空当前会话')
                 messages.value = []
                 sessionInfo.value = null
                 currentSessionId.value = null
@@ -92,7 +93,7 @@ export const useChatStore = defineStore('chat', () => {
 
     const sendMessage = async (content, imagePath = null, router = null, options = {}) => {
         try {
-            const instant = git add -A && git commit -m "style: 代码格式化" && git push origin develop && git checkout main && git merge develop && git push origin main && git checkout developoptions.instant // 语音模式：立即展示，不走打字动画
+            const instant = !!options.instant // 语音模式：立即展示，不走打字动画
             const responseStyle = options.responseStyle || 'balanced'
 
             // ChatView.vue 已立即插入用户消息，这里不再重复插入
@@ -102,6 +103,7 @@ export const useChatStore = defineStore('chat', () => {
             const placeholderId = Date.now() + 1
             activeTypingMessageId.value = placeholderId
             const initialStatus = instant ? 'typing' : 'thinking'
+            console.log('💭 创建占位消息，status:', initialStatus, 'instant:', instant)
             messages.value.push({
                 id: placeholderId,
                 role: 'assistant',
@@ -127,7 +129,7 @@ export const useChatStore = defineStore('chat', () => {
                         id: response.session_id,
                         title: content.substring(0, 30) + (content.length > 30 ? '...' : '')
                     }
-                    if (router) router.push(\`/chat/\${response.session_id}\`)
+                    if (router) router.push(`/chat/${response.session_id}`)
                 }
             }
 
@@ -148,9 +150,11 @@ export const useChatStore = defineStore('chat', () => {
                     for (let i = msgIndex - 1; i >= 0; i--) {
                         const msg = messages.value[i]
                         if (msg.role === 'user' && String(msg.id).startsWith('temp-')) {
+                            console.log('✅ Syncing user message ID:', msg.id, '->', response.user_message_id)
                             messages.value[i].id = response.user_message_id
                             // 同步服务器图片路径,替换本地blob URL
                             if (imagePath) {
+                                console.log('🖼️ Syncing user message image_path:', imagePath)
                                 messages.value[i].image_path = imagePath
                             }
                             break
@@ -174,6 +178,7 @@ export const useChatStore = defineStore('chat', () => {
                     }
                 } else {
                     // 让思考阶段自然呈现：动态计算最少展示时间，兼顾真实耗时
+                    console.log('💭 收到响应，当前status:', messages.value[msgIndex]?.status)
                     const thinkingStartedAt = messages.value[msgIndex].thinkingStartedAt || Date.now()
                     const baseThinking = 350
                     const perCharMs = 4
@@ -184,6 +189,7 @@ export const useChatStore = defineStore('chat', () => {
                     )
 
                     const startTyping = () => {
+                        console.log('⌨️ 开始打字动画')
                         messages.value[msgIndex].status = 'typing'
                         messages.value[msgIndex].content = ''
 
@@ -218,8 +224,16 @@ export const useChatStore = defineStore('chat', () => {
             }
 
             await loadSessions(true) // 强制刷新会话列表
+            console.log('✅ Sessions refreshed after message sent')
         } catch (error) {
             console.error('Failed to send message:', error)
+            console.error('错误详情:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                config: error.config
+            })
             // 错误时撤销占位或显示错误
             if (activeTypingMessageId.value) {
                 const msgIndex = messages.value.findIndex(m => m.id === activeTypingMessageId.value)
@@ -229,7 +243,7 @@ export const useChatStore = defineStore('chat', () => {
                     // 格式化错误信息，避免直接显示 JSON 对象
                     let errorMsg = '出错了，请稍后重试。'
                     if (error.response?.status === 500) {
-                        errorMsg = '服务器内部错误（500）。可能原因：\\n1. 后端服务异常\\n2. 图片路径格式不正确\\n3. 请求参数有误\\n\\n请检查浏览器控制台的详细错误信息，或联系管理员。'
+                        errorMsg = '服务器内部错误（500）。可能原因：\n1. 后端服务异常\n2. 图片路径格式不正确\n3. 请求参数有误\n\n请检查浏览器控制台的详细错误信息，或联系管理员。'
                     } else if (error.response?.data) {
                         if (typeof error.response.data === 'string') {
                             errorMsg = error.response.data
@@ -243,7 +257,7 @@ export const useChatStore = defineStore('chat', () => {
                     } else if (error.message) {
                         errorMsg = error.message
                     }
-                    messages.value[msgIndex].content = \`⚠️ \${errorMsg}\`
+                    messages.value[msgIndex].content = `⚠️ ${errorMsg}`
                 }
             }
         } finally {
@@ -260,6 +274,7 @@ export const useChatStore = defineStore('chat', () => {
 
         // 🔧 修复: 当有图片时使用非流式接口(避免Cloudflare HTTP/2错误)
         if (imagePath) {
+            console.warn('⚠️ 检测到图片,使用非流式接口')
             return await sendMessage(content, imagePath, router, options)
         }
 
@@ -275,6 +290,11 @@ export const useChatStore = defineStore('chat', () => {
                 status: 'thinking'
             }
             messages.value.push(thinkingMsg)
+            console.log('💭 Thinking message added:', thinkingMsg)
+
+            // 移除人为延迟，依赖 CSS 强制显示
+            // await nextTick()
+            // await new Promise(resolve => setTimeout(resolve, 16))
 
             // 构建中止控制器
             const controller = new AbortController()
@@ -288,6 +308,8 @@ export const useChatStore = defineStore('chat', () => {
                 if (msgIndex === -1) {
                     msgIndex = messages.value.findIndex(m => m.id === placeholderId)
                 }
+                // 保持 thinking 状态，直到收到第一个字符 (onDelta) 再切换为 typing
+                // 这样可以确保在连接建立但未生成内容时显示"思考中..."
             }
 
             const onDelta = (chunk) => {
@@ -321,9 +343,11 @@ export const useChatStore = defineStore('chat', () => {
                         for (let i = msgIndex - 1; i >= 0; i--) {
                             const msg = messages.value[i]
                             if (msg.role === 'user' && String(msg.id).startsWith('temp-')) {
+                                console.log('✅ Syncing user message ID:', msg.id, '->', payload.user_message_id)
                                 messages.value[i].id = payload.user_message_id
                                 // 同步服务器图片路径,替换本地blob URL
                                 if (payload?.image_path) {
+                                    console.log('🖼️ Syncing user message image_path:', payload.image_path)
                                     messages.value[i].image_path = payload.image_path
                                 }
                                 break
@@ -342,13 +366,14 @@ export const useChatStore = defineStore('chat', () => {
                             id: payload.session_id,
                             title: content.substring(0, 30) + (content.length > 30 ? '...' : '')
                         }
-                        if (router) router.push(\`/chat/\${payload.session_id}\`)
+                        if (router) router.push(`/chat/${payload.session_id}`)
                     }
                 }
 
                 isTyping.value = false
                 activeStreamAbort.value = null
                 await loadSessions(true) // 强制刷新会话列表
+                console.log('✅ Sessions refreshed after streamed message')
             }
 
             await api.streamChat({
@@ -358,15 +383,23 @@ export const useChatStore = defineStore('chat', () => {
                 image_path: imagePath,
                 response_style: responseStyle
             }, { onStart, onDelta, onEnd, signal: controller.signal })
+            console.log('📤 Sent message with session_id:', currentSessionId.value || null)
         } catch (error) {
             console.error('Failed to send message (stream):', error)
+            console.error('流式发送错误详情:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                config: error.config
+            })
             if (activeTypingMessageId.value) {
                 const msgIndex = messages.value.findIndex(m => m.id === activeTypingMessageId.value)
                 if (msgIndex !== -1) {
                     messages.value[msgIndex].status = 'done'
                     let errText = '出错了，请稍后重试。'
                     if (error.response?.status === 500) {
-                        errText = '服务器内部错误（500）。可能原因：\\n1. 后端服务异常\\n2. 图片路径格式不正确\\n3. 请求参数有误\\n\\n请检查浏览器控制台的详细错误信息。'
+                        errText = '服务器内部错误（500）。可能原因：\n1. 后端服务异常\n2. 图片路径格式不正确\n3. 请求参数有误\n\n请检查浏览器控制台的详细错误信息。'
                     } else if (error.response?.data) {
                         if (typeof error.response.data === 'string') {
                             errText = error.response.data
@@ -378,7 +411,7 @@ export const useChatStore = defineStore('chat', () => {
                     } else if (error?.message) {
                         errText = error.message
                     }
-                    messages.value[msgIndex].content = \`⚠️ \${errText}\`
+                    messages.value[msgIndex].content = `⚠️ ${errText}`
                 }
             }
         } finally {
@@ -409,19 +442,26 @@ export const useChatStore = defineStore('chat', () => {
 
     const uploadImage = async (file) => {
         try {
+            console.log('📤 chatStore.uploadImage called with:', file)
             const formData = new FormData()
             formData.append('file', file)
 
             const response = await api.uploadImage(formData)
+            console.log('✅ chatStore.uploadImage success:', response)
 
             // 兼容不同的返回格式
             if (response.file_path) return response.file_path
             if (response.url) return response.url
             if (typeof response === 'string') return response
 
+            console.warn('⚠️ Unknown response format from uploadImage:', response)
             return response.file_path || response.url || null
         } catch (error) {
             console.error('Failed to upload image:', error)
+            if (error.response) {
+                console.error('Error response:', JSON.stringify(error.response.data, null, 2))
+                console.error('Error status:', error.response.status)
+            }
             return null
         }
     }
@@ -444,9 +484,11 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     const clearCurrentSession = () => {
+        console.log('🆕 Clearing current session, was:', currentSessionId.value)
         messages.value = []
         sessionInfo.value = null
         currentSessionId.value = null
+        console.log('✅ Session cleared, now:', currentSessionId.value)
     }
 
     const deleteMessage = (messageId) => {
@@ -489,7 +531,7 @@ export const useChatStore = defineStore('chat', () => {
         uploadDocument,
         clearCurrentSession,
         deleteMessage,
-        deleteMessageApi,
+        deleteMessageApi, // Export this
         submitFeedback
     }
 })
