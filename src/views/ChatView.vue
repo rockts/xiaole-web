@@ -2208,7 +2208,7 @@ const formatImagePath = (path) => {
   if (!normalizedPath.startsWith("/")) {
     normalizedPath = "/" + normalizedPath;
   }
-  
+
   // 生产环境：图片存储在后端服务器，需要拼接 API 基础 URL
   const apiBase = import.meta.env.VITE_API_BASE;
   if (apiBase) {
@@ -2218,7 +2218,7 @@ const formatImagePath = (path) => {
     }
     return fullUrl;
   }
-  
+
   // 调试日志（开发环境）
   if (import.meta.env.DEV && path !== normalizedPath) {
     console.log(
