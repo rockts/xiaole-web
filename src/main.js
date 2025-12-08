@@ -8,7 +8,7 @@ import 'highlight.js/styles/github-dark.css'
 
 // 控制台调试提示
 console.log(
-  '%c小乐 AI 管家 %cv0.9.0',
+  '%c小乐 AI 管家 %cv0.9.1',
   'color: #667eea; font-size: 20px; font-weight: bold;',
   'color: #999; font-size: 14px;'
 );
