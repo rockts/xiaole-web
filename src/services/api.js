@@ -113,8 +113,8 @@ api.interceptors.response.use(
 
 export default {
     // 会话相关
-    getSessions(allSessions = true) {
-        return api.get('/sessions', { params: { all_sessions: allSessions, _t: Date.now() } })
+    getSessions() {
+        return api.get('/sessions', { params: { all_sessions: true, _t: Date.now() } })
     },
 
     getSession(sessionId, limit = 200) {

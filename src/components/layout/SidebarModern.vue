@@ -58,6 +58,7 @@
           to="/chat"
           class="nav-item"
           :class="{ active: isActive('/chat') }"
+          @click="handleMobileNav"
         >
           <span class="nav-icon">
             <svg
@@ -88,42 +89,43 @@
         </router-link>
       </nav>
 
-      <!-- 最近对话列表 -->
+      <!-- 对话列表区域 -->
       <div class="sessions-section">
-        <!-- 待办任务列表 (显示在历史对话上方) -->
-        <div class="tasks-section" v-if="incompleteTasks.length > 0">
-          <div class="section-header">
-            <span>待办任务</span>
-          </div>
-          <div class="tasks-list">
-            <div
-              v-for="task in incompleteTasks"
-              :key="task.id"
-              class="task-item"
-              @click="handleTaskClick(task)"
-            >
-              <div class="task-status-icon">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="10"></circle>
-                </svg>
+        <div class="sessions-list" @scroll="handleScroll" ref="sessionsListRef">
+          <!-- 待办任务列表 (和历史对话一起滚动) -->
+          <div class="tasks-section" v-if="incompleteTasks.length > 0">
+            <div class="section-header">
+              <span>待办任务</span>
+            </div>
+            <div class="tasks-list">
+              <div
+                v-for="task in incompleteTasks"
+                :key="task.id"
+                class="task-item"
+                @click="handleTaskClick(task)"
+              >
+                <div class="task-status-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                </div>
+                <div class="task-content">{{ task.title }}</div>
               </div>
-              <div class="task-content">{{ task.title }}</div>
             </div>
           </div>
-        </div>
 
-        <div class="section-header">
-          <span>历史对话</span>
-        </div>
+          <!-- 历史对话 -->
+          <div class="section-header">
+            <span>历史对话</span>
+          </div>
 
-        <div class="sessions-list" @scroll="handleScroll" ref="sessionsListRef">
           <template v-if="loading && sessions.length === 0">
             <div class="loading-skeleton">
               <div class="skeleton-item" v-for="i in 3" :key="i"></div>
@@ -549,11 +551,12 @@ const navItems = [
     label: "文档",
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
   },
-  {
-    path: "/tools",
-    label: "工具",
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>',
-  },
+  // 工具入口暂时隐藏，功能完善后再启用
+  // {
+  //   path: "/tools",
+  //   label: "工具",
+  //   icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>',
+  // },
 ];
 
 const isActive = (path) => route.path.startsWith(path);
@@ -678,6 +681,7 @@ const displayedSessions = computed(() => {
 
 const handleScroll = (e) => {
   const { scrollTop, scrollHeight, clientHeight } = e.target;
+  // 滚动到底部时，加载更多已加载的会话（前端分页）
   if (scrollHeight - scrollTop - clientHeight < 50) {
     if (displayedSessions.value.length < sessions.value.length) {
       currentPage.value++;

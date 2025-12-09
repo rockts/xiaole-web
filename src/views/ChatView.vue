@@ -1320,7 +1320,7 @@ watch(
       isLoadingSession.value = true;
       sessionLoadError.value = null; // 清除之前的错误
 
-      // 设置3秒超时保护(缩短超时时间)
+      // 设置5秒超时保护
       loadingTimeout = setTimeout(() => {
         if (isDev) console.warn("⚠️ 会话加载超时,强制停止加载动画");
         isLoadingSession.value = false;
@@ -1328,7 +1328,7 @@ watch(
           sessionLoadError.value =
             "加载超时，请检查网络连接或后端服务是否正常运行";
         }
-      }, 3000);
+      }, 5000);
 
       try {
         await chatStore.loadSession(newId);
@@ -4866,12 +4866,13 @@ const feedbackMessage = async (message, type) => {
 
   .chat-inner {
     padding: 12px;
-    padding-bottom: 8px; /* 减少底部内边距，避免键盘弹出时过多空白 */
+    padding-top: 60px; /* 顶部留出 TopBar 空间 */
+    padding-bottom: 100px; /* 底部留出输入框空间 */
   }
 
   /* 移动端最后一条消息添加底部空间 */
   .message:last-child {
-    padding-bottom: 20px !important;
+    padding-bottom: 80px !important;
   }
 
   .user-bubble {

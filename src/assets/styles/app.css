@@ -2508,8 +2508,8 @@ button:disabled {
 
     /* 聊天区域调整 */
     .chat-inner {
-        padding: 16px 12px 100px !important;
-        /* 减小内边距，底部留出输入框空间 */
+        padding: 60px 12px 120px !important;
+        /* 顶部留出TopBar空间，底部留出输入框空间 */
     }
 
     /* 消息气泡优化 */

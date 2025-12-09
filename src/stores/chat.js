@@ -10,23 +10,17 @@ export const useChatStore = defineStore('chat', () => {
     const isTyping = ref(false)
     const loading = ref(false)
 
-    const loadSessions = async (forceRefresh = false) => {
+    // 加载会话列表（一次性加载全部，前端分页显示）
+    const loadSessions = async () => {
         try {
             loading.value = true
-            const data = await api.getSessions(forceRefresh)
+            const data = await api.getSessions(true)
             // 将 session_id 映射为 id，保持字段一致性
             sessions.value = (data.sessions || []).map(s => ({
                 ...s,
                 id: s.session_id || s.id
             }))
             console.log('✅ Sessions loaded:', sessions.value.length)
-            if (sessions.value.length > 0) {
-                console.log('📋 最新3条会话:', sessions.value.slice(0, 3).map(s => ({
-                    title: s.title,
-                    updated_at: s.updated_at,
-                    id: s.id || s.session_id
-                })))
-            }
         } catch (error) {
             console.error('Failed to load sessions:', error)
         } finally {
