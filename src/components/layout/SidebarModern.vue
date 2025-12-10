@@ -681,9 +681,23 @@ const displayedSessions = computed(() => {
 
 const handleScroll = (e) => {
   const { scrollTop, scrollHeight, clientHeight } = e.target;
+  const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+
+  // 调试日志
+  console.log("📜 Scroll:", {
+    scrollTop,
+    scrollHeight,
+    clientHeight,
+    distanceToBottom,
+    displayed: displayedSessions.value.length,
+    total: sessions.value.length,
+    currentPage: currentPage.value,
+  });
+
   // 滚动到底部时，加载更多已加载的会话（前端分页）
-  if (scrollHeight - scrollTop - clientHeight < 50) {
+  if (distanceToBottom < 50) {
     if (displayedSessions.value.length < sessions.value.length) {
+      console.log("📄 Loading more sessions, page:", currentPage.value + 1);
       currentPage.value++;
     }
   }
@@ -697,7 +711,19 @@ const handleScroll = (e) => {
 const ensureScrollable = async () => {
   await nextTick();
   const el = sessionsListRef.value;
-  if (!el) return;
+  if (!el) {
+    console.log("⚠️ ensureScrollable: sessionsListRef not found");
+    return;
+  }
+
+  console.log("📏 ensureScrollable check:", {
+    scrollHeight: el.scrollHeight,
+    clientHeight: el.clientHeight,
+    needsScroll: el.scrollHeight > el.clientHeight,
+    displayed: displayedSessions.value.length,
+    total: sessions.value.length,
+  });
+
   let guard = 20; // 最多尝试 20 次，避免死循环
   while (
     el.scrollHeight <= el.clientHeight &&
@@ -1355,8 +1381,7 @@ watch(
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  max-height: calc(100vh - 200px);
+  min-height: 0; /* 重要：允许 flex 子项收缩 */
   gap: 0;
   margin: 0;
   padding: 0 0 0 8px;
@@ -1920,14 +1945,13 @@ watch(
     max-height: 100dvh;
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* 允许整体滚动 */
+    overflow: hidden; /* 改为 hidden，让 sessions-list 处理滚动 */
   }
   .sessions-section {
-    /* 限制最大高度，为footer预留空间 */
-    max-height: calc(100vh - 200px); /* 为顶部logo+nav+footer预留空间 */
-    max-height: calc(100dvh - 200px);
+    /* 使用 flex: 1 自适应剩余空间 */
     flex: 1;
     min-height: 0;
+    max-height: none; /* 移除固定 max-height，让 flex 控制 */
     overflow: hidden;
     display: flex;
     flex-direction: column;
