@@ -1,7 +1,8 @@
 #!/bin/bash
 
 SOURCE=".agent_local"
-DEST="$HOME/Library/Mobile Documents/com~apple~CloudDocs/xiaole_agent_backup"
+# 使用 Synology Drive 同步（iCloud 同步不稳定）
+DEST="$HOME/synologydrive/drive/xiaole_agent"
 
 echo "🔄 正在备份小乐 Agent 记忆..."
 
