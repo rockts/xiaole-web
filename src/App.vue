@@ -74,7 +74,8 @@ watch(
 
 .content-wrapper {
   flex: 1;
-  overflow: hidden; /* 改为 hidden，让子组件自己处理滚动 */
+  overflow-y: auto; /* 允许垂直滚动 */
+  overflow-x: hidden;
   background: var(--bg-primary); /* 统一背景色 */
   display: flex;
   flex-direction: column;
@@ -91,9 +92,10 @@ watch(
     padding-top: 52px;
   }
   .content-wrapper {
-    /* 移动端：确保内容填满 */
+    /* 移动端：确保内容填满且可滚动 */
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     min-height: 0;
   }
 }
