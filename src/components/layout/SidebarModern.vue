@@ -1946,8 +1946,9 @@ watch(
 @media (max-width: 768px) {
   .sidebar-content {
     /* 确保sidebar-content占满剩余高度（排除footer） */
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0; /* 关键：允许收缩 */
+    max-height: calc(100% - 80px); /* 预留 footer 空间 */
     display: flex;
     flex-direction: column;
     overflow: hidden; /* 改为 hidden，让 sessions-list 处理滚动 */
