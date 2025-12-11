@@ -1942,10 +1942,9 @@ watch(
 /* 移动端覆盖：让可滚动区域自适应，避免挤压底部用户栏 */
 @media (max-width: 768px) {
   .sidebar-content {
-    /* 确保sidebar-content占满高度并使用flex分配 */
-    height: 100%;
-    max-height: 100vh;
-    max-height: 100dvh;
+    /* 确保sidebar-content占满剩余高度（排除footer） */
+    flex: 1;
+    min-height: 0; /* 关键：允许收缩 */
     display: flex;
     flex-direction: column;
     overflow: hidden; /* 改为 hidden，让 sessions-list 处理滚动 */
@@ -1961,19 +1960,16 @@ watch(
   }
   .sessions-list {
     flex: 1;
-    overflow-y: scroll !important; /* 强制显示滚动条 */
+    overflow-y: auto !important;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
-    /* 强制显示滚动条 - 所有浏览器 */
-    scrollbar-width: auto !important; /* Firefox - auto比thin更明显 */
-    scrollbar-color: rgba(0, 0, 0, 0.5) rgba(0, 0, 0, 0.1) !important;
+    /* iOS Safari 需要这个才能显示滚动条 */
+    scrollbar-width: thin;
   }
-  /* Chrome/Safari/Edge/移动端 - 强制显示，使用更明显的样式 */
+  /* iOS/移动端滚动条样式 - 简化为更兼容的样式 */
   .sessions-list::-webkit-scrollbar {
-    width: 14px !important; /* 加宽滚动条 */
-    -webkit-appearance: none !important;
-    display: block !important;
-    background: rgba(0, 0, 0, 0.05) !important;
+    width: 6px;
+    -webkit-appearance: none;
   }
   .sessions-list::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.08) !important;
@@ -1996,7 +1992,9 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* 确保footer始终在底部显示，增加足够的padding避免被系统UI遮挡 */
+    /* 确保footer始终在底部显示 */
+    position: sticky;
+    bottom: 0;
     flex-shrink: 0;
     padding: 12px 8px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
@@ -2004,6 +2002,7 @@ watch(
     border-top: 1px solid var(--border-light);
     min-height: 60px;
     box-sizing: border-box;
+    z-index: 10;
   }
 }
 </style>
