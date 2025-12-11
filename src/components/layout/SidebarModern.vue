@@ -1945,9 +1945,9 @@ watch(
 /* 移动端覆盖：让可滚动区域自适应，避免挤压底部用户栏 */
 @media (max-width: 768px) {
   .sidebar-content {
-    flex: 1 1 0 !important; /* 占满剩余空间 */
-    min-height: 0 !important; /* 允许收缩 */
-    max-height: calc(100% - 60px) !important; /* 预留 footer 高度 */
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-height: calc(100% - 60px) !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1955,40 +1955,41 @@ watch(
   .sessions-section {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden; /* 不在这层滚动 */
     display: flex;
     flex-direction: column;
   }
+  /* 历史对话列表 - 唯一滚动区域 */
   .sessions-list {
     flex: 1;
-    overflow-y: scroll !important; /* 强制显示滚动条 */
+    overflow-y: scroll !important;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    /* Firefox */
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+    scrollbar-color: rgba(128, 128, 128, 0.5) rgba(128, 128, 128, 0.1);
   }
-  /* iOS/移动端滚动条样式 - 强制显示 */
+  /* Chrome/Safari/Edge 滚动条 */
   .sessions-list::-webkit-scrollbar {
-    width: 8px !important;
-    -webkit-appearance: none !important;
-    display: block !important;
+    width: 6px;
+    height: 6px;
+    background: transparent;
   }
   .sessions-list::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05) !important;
-    border-radius: 4px !important;
+    background: rgba(128, 128, 128, 0.1);
+    border-radius: 3px;
   }
   .sessions-list::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.25) !important;
-    border-radius: 4px !important;
-    min-height: 40px !important;
+    background: rgba(128, 128, 128, 0.4);
+    border-radius: 3px;
+    min-height: 40px;
   }
   .sessions-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.4) !important;
+    background: rgba(128, 128, 128, 0.6);
   }
   .sidebar-footer {
     flex: 0 0 auto !important;
-    height: 60px !important; /* 固定高度 */
+    height: 60px !important;
     min-height: 60px !important;
     padding: 10px 8px !important;
     padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
