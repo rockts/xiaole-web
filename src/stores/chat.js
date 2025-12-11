@@ -273,22 +273,36 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         try {
-            // 插入思考占位消息
             isTyping.value = true
-            const placeholderId = Date.now() + 1
-            activeTypingMessageId.value = placeholderId
-            const thinkingMsg = {
-                id: placeholderId,
-                role: 'assistant',
-                content: '',
-                status: 'thinking'
+            
+            // 🔧 复用已存在的 thinking 占位消息（由 ChatView 提前添加）
+            // 查找最后一条 status='thinking' 的 assistant 消息
+            let existingThinkingIndex = -1
+            for (let i = messages.value.length - 1; i >= 0; i--) {
+                if (messages.value[i].role === 'assistant' && messages.value[i].status === 'thinking') {
+                    existingThinkingIndex = i
+                    break
+                }
             }
-            messages.value.push(thinkingMsg)
-            console.log('💭 Thinking message added:', thinkingMsg)
-
-            // 移除人为延迟，依赖 CSS 强制显示
-            // await nextTick()
-            // await new Promise(resolve => setTimeout(resolve, 16))
+            
+            let placeholderId
+            if (existingThinkingIndex !== -1) {
+                // 复用已存在的 thinking 消息
+                placeholderId = messages.value[existingThinkingIndex].id
+                console.log('💭 Reusing existing thinking message:', placeholderId)
+            } else {
+                // 如果不存在（例如从其他地方调用），创建新的
+                placeholderId = Date.now() + 1
+                const thinkingMsg = {
+                    id: placeholderId,
+                    role: 'assistant',
+                    content: '',
+                    status: 'thinking'
+                }
+                messages.value.push(thinkingMsg)
+                console.log('💭 Created new thinking message:', placeholderId)
+            }
+            activeTypingMessageId.value = placeholderId
 
             // 构建中止控制器
             const controller = new AbortController()

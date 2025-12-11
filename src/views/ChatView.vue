@@ -2688,6 +2688,17 @@ const sendMessage = async () => {
   };
   messages.value.push(userMsg);
 
+  // 🔧 立即添加 thinking 占位消息，确保用户发送后立刻看到 AI 思考动画
+  const thinkingPlaceholderId = Date.now() + 1;
+  const thinkingMsg = {
+    id: thinkingPlaceholderId,
+    role: "assistant",
+    content: "",
+    status: "thinking",
+  };
+  messages.value.push(thinkingMsg);
+  console.log("💭 [ChatView] Thinking placeholder added:", thinkingPlaceholderId);
+
   // 设置标志位：需要滚动到底部
   shouldScrollToBottom.value = true;
 
@@ -2699,6 +2710,11 @@ const sendMessage = async () => {
 
       if (!imagePath) {
         console.error("❌ 图片上传返回空路径");
+        // 移除 thinking 占位消息
+        const thinkingIndex = messages.value.findIndex(m => m.id === thinkingPlaceholderId);
+        if (thinkingIndex !== -1) {
+          messages.value.splice(thinkingIndex, 1);
+        }
         // 上传失败处理
         messages.value.push({
           id: `error-${Date.now()}`,
@@ -2707,9 +2723,9 @@ const sendMessage = async () => {
           status: "done",
         });
         // 移除刚才添加的用户消息
-        const lastIndex = messages.value.length - 1;
-        if (lastIndex >= 0 && messages.value[lastIndex].id === userMsg.id) {
-          messages.value.splice(lastIndex, 1);
+        const userMsgIndex = messages.value.findIndex(m => m.id === userMsg.id);
+        if (userMsgIndex !== -1) {
+          messages.value.splice(userMsgIndex, 1);
         }
         return;
       }
@@ -2748,10 +2764,26 @@ const sendMessage = async () => {
         await chatStore.sendMessageStreamed(content, pathToSend, router);
       } catch (e) {
         console.error("发送消息失败:", e.message);
+        // 移除 thinking 占位消息
+        const thinkingIndex = messages.value.findIndex(m => m.id === thinkingPlaceholderId);
+        if (thinkingIndex !== -1) {
+          messages.value.splice(thinkingIndex, 1);
+        }
+        messages.value.push({
+          id: `error-${Date.now()}`,
+          role: "assistant",
+          content: "❌ 发送失败，请重试。",
+          status: "done",
+        });
       }
     }, 0);
   } catch (e) {
     console.error("发送消息失败:", e);
+    // 移除 thinking 占位消息
+    const thinkingIndex = messages.value.findIndex(m => m.id === thinkingPlaceholderId);
+    if (thinkingIndex !== -1) {
+      messages.value.splice(thinkingIndex, 1);
+    }
     messages.value.push({
       id: `error-${Date.now()}`,
       role: "assistant",
