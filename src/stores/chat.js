@@ -457,13 +457,14 @@ export const useChatStore = defineStore('chat', () => {
             const response = await api.uploadImage(formData)
             console.log('✅ chatStore.uploadImage success:', response)
 
-            // 兼容不同的返回格式
+            // 兼容不同的返回格式：file_path, path, url
             if (response.file_path) return response.file_path
+            if (response.path) return response.path
             if (response.url) return response.url
             if (typeof response === 'string') return response
 
             console.warn('⚠️ Unknown response format from uploadImage:', response)
-            return response.file_path || response.url || null
+            return response.file_path || response.path || response.url || null
         } catch (error) {
             console.error('Failed to upload image:', error)
             if (error.response) {

@@ -2212,8 +2212,8 @@ const shareMessage = async (message) => {
   const sessionId = route.params.sessionId;
   if (sessionId) {
     // 单条消息分享：找到这条消息及其上下文
-    const msgIndex = messages.value.findIndex(m => 
-      (m.id || m.message_id) === (message.id || message.message_id)
+    const msgIndex = messages.value.findIndex(
+      (m) => (m.id || m.message_id) === (message.id || message.message_id)
     );
     // 获取当前消息和之前的一条用户消息作为预览
     const contextMessages = [];
@@ -2221,7 +2221,7 @@ const shareMessage = async (message) => {
       contextMessages.push(messages.value[msgIndex - 1]);
     }
     contextMessages.push(message);
-    
+
     shareMode.value = "message";
     shareDialogTitle.value = sessionInfo.value?.title || "分享消息";
     shareMessages.value = contextMessages;
