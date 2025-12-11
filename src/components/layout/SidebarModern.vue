@@ -90,14 +90,8 @@
       </nav>
 
       <!-- 对话列表区域 -->
-      <div class="sessions-section">
+      <div class="sessions-section" ref="sessionsSectionRef">
         <div class="sessions-list" @scroll="handleScroll" ref="sessionsListRef">
-          <!-- 自定义滚动指示器 -->
-          <div
-            class="scroll-indicator"
-            :style="scrollIndicatorStyle"
-            v-show="showScrollIndicator"
-          ></div>
           <!-- 待办任务列表 (和历史对话一起滚动) -->
           <div class="tasks-section" v-if="incompleteTasks.length > 0">
             <div class="section-header">
@@ -661,43 +655,64 @@ const deletingSessionId = ref(null);
 
 // 会话列表元素，用于检测滚动条是否出现
 const sessionsListRef = ref(null);
+const sessionsSectionRef = ref(null);
 
-// 自定义滚动指示器
-const showScrollIndicator = ref(false);
-const scrollIndicatorStyle = ref({});
-let scrollIndicatorTimer = null;
+// 移动端自定义滚动条
+const scrollThumbRef = ref(null);
+const showMobileScrollbar = ref(false);
+let scrollbarTimer = null;
 
-const updateScrollIndicator = (el) => {
-  if (!el) return;
+const updateMobileScrollbar = () => {
+  const el = sessionsListRef.value;
+  const section = sessionsSectionRef.value;
+  if (!el || !section || window.innerWidth > 768) return;
+  
   const { scrollTop, scrollHeight, clientHeight } = el;
-
-  // 如果内容不需要滚动，隐藏指示器
+  
+  // 如果不需要滚动，隐藏
   if (scrollHeight <= clientHeight) {
-    showScrollIndicator.value = false;
+    showMobileScrollbar.value = false;
     return;
   }
-
-  // 计算指示器高度和位置
-  const thumbHeight = Math.max(
-    (clientHeight / scrollHeight) * clientHeight,
-    30
-  );
-  const maxScrollTop = scrollHeight - clientHeight;
-  const thumbTop = (scrollTop / maxScrollTop) * (clientHeight - thumbHeight);
-
-  scrollIndicatorStyle.value = {
-    height: `${thumbHeight}px`,
-    top: `${thumbTop}px`,
-  };
-
-  // 显示指示器
-  showScrollIndicator.value = true;
-
-  // 滚动停止后2秒隐藏
-  clearTimeout(scrollIndicatorTimer);
-  scrollIndicatorTimer = setTimeout(() => {
-    showScrollIndicator.value = false;
-  }, 2000);
+  
+  // 计算滚动条位置和高度
+  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 30);
+  const maxScroll = scrollHeight - clientHeight;
+  const thumbTop = (scrollTop / maxScroll) * (clientHeight - thumbHeight);
+  
+  // 创建或更新滚动条
+  let thumb = section.querySelector('.mobile-scrollbar-thumb');
+  if (!thumb) {
+    thumb = document.createElement('div');
+    thumb.className = 'mobile-scrollbar-thumb';
+    section.appendChild(thumb);
+  }
+  
+  thumb.style.cssText = `
+    position: absolute;
+    right: 2px;
+    top: ${thumbTop}px;
+    width: 4px;
+    height: ${thumbHeight}px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 2px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 10;
+  `;
+  
+  // 浅色模式
+  if (document.documentElement.getAttribute('data-theme') === 'light') {
+    thumb.style.background = 'rgba(0, 0, 0, 0.25)';
+  }
+  
+  thumb.style.opacity = '1';
+  
+  // 滚动停止后淡出
+  clearTimeout(scrollbarTimer);
+  scrollbarTimer = setTimeout(() => {
+    if (thumb) thumb.style.opacity = '0';
+  }, 1500);
 };
 
 const menuBtnRefs = ref({});
@@ -730,8 +745,8 @@ const handleScroll = (e) => {
   const { scrollTop, scrollHeight, clientHeight } = e.target;
   const distanceToBottom = scrollHeight - scrollTop - clientHeight;
 
-  // 更新滚动指示器
-  updateScrollIndicator(e.target);
+  // 更新移动端自定义滚动条
+  updateMobileScrollbar();
 
   // 调试日志
   console.log("📜 Scroll:", {
@@ -1440,28 +1455,13 @@ watch(
   margin: 0;
   padding: 0 0 0 8px;
   overflow: hidden;
+  position: relative; /* 用于移动端自定义滚动条定位 */
 }
 
 .sessions-list {
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
-  position: relative;
-}
-
-/* 自定义滚动指示器 */
-.scroll-indicator {
-  position: fixed;
-  right: 4px;
-  width: 4px;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 100;
-  transition: opacity 0.3s ease;
-}
-[data-theme="light"] .scroll-indicator {
-  background: rgba(0, 0, 0, 0.3);
 }
 
 .section-header {

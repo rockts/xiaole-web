@@ -197,8 +197,8 @@ body {
    ======================================== */
 
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -219,43 +219,6 @@ body {
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--border-medium) transparent;
-}
-
-/* 移动端滚动条 - 强制显示细滚动条 */
-@media (max-width: 768px) {
-    /* 主内容区滚动条 */
-    .content-wrapper,
-    .chat-container,
-    .sessions-list,
-    .memory-view,
-    .tasks-view,
-    .documents-view,
-    .behavior-view,
-    .settings-view {
-        /* 强制显示滚动条 */
-        overflow-y: scroll !important;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* 移动端滚动条样式 - 细条 */
-    ::-webkit-scrollbar {
-        width: 4px !important;
-        height: 4px !important;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: transparent !important;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: rgba(128, 128, 128, 0.4) !important;
-        border-radius: 2px !important;
-    }
-
-    /* 深色模式下的滚动条 */
-    [data-theme="dark"] ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3) !important;
-    }
 }
 
 /* ========================================

@@ -1089,6 +1089,59 @@ const messageInput = ref(null);
 const isMobile = ref(window.innerWidth <= 768);
 const chatContainer = ref(null);
 const chatViewRoot = ref(null);
+
+// 移动端自定义滚动条
+let chatScrollbarTimer = null;
+const updateMobileChatScrollbar = () => {
+  const el = chatContainer.value;
+  const root = chatViewRoot.value;
+  if (!el || !root || window.innerWidth > 768) return;
+  
+  const { scrollTop, scrollHeight, clientHeight } = el;
+  
+  // 如果不需要滚动，隐藏
+  if (scrollHeight <= clientHeight) return;
+  
+  // 计算滚动条位置和高度
+  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 40);
+  const maxScroll = scrollHeight - clientHeight;
+  const thumbTop = (scrollTop / maxScroll) * (clientHeight - thumbHeight);
+  
+  // 创建或更新滚动条
+  let thumb = root.querySelector('.mobile-chat-scrollbar');
+  if (!thumb) {
+    thumb = document.createElement('div');
+    thumb.className = 'mobile-chat-scrollbar';
+    root.appendChild(thumb);
+  }
+  
+  thumb.style.cssText = `
+    position: fixed;
+    right: 2px;
+    top: ${52 + thumbTop}px;
+    width: 4px;
+    height: ${thumbHeight}px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 2px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 50;
+  `;
+  
+  // 浅色模式
+  if (document.documentElement.getAttribute('data-theme') === 'light') {
+    thumb.style.background = 'rgba(0, 0, 0, 0.25)';
+  }
+  
+  thumb.style.opacity = '1';
+  
+  // 滚动停止后淡出
+  clearTimeout(chatScrollbarTimer);
+  chatScrollbarTimer = setTimeout(() => {
+    if (thumb) thumb.style.opacity = '0';
+  }, 1500);
+};
+
 const fileInput = ref(null);
 const voiceModeDialogRef = ref(null); // VoiceMode 对话框引用
 const isRecording = ref(false);
@@ -2295,6 +2348,9 @@ const onScroll = () => {
   if (showQuoteBtn.value) {
     showQuoteBtn.value = false;
   }
+  
+  // 更新移动端自定义滚动条
+  updateMobileChatScrollbar();
 };
 
 const scrollToBottomSmooth = () => {
