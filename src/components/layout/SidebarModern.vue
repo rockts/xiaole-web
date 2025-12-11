@@ -1104,29 +1104,25 @@ watch(
 /* 移动端适配 */
 @media (max-width: 768px) {
   .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0; /* 用 top + bottom 代替 height */
-    height: auto; /* 覆盖桌面端的固定高度 */
-    min-height: 100vh;
-    min-height: 100dvh;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: 0 !important;
+    height: 100% !important; /* 强制占满整个视口 */
     width: 245px !important;
     min-width: 245px !important;
-    flex: 0 0 245px !important;
+    max-width: 245px !important;
     transform: translateX(0);
     box-shadow: var(--shadow-lg);
     z-index: 1000;
-    padding-bottom: env(safe-area-inset-bottom);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* 由内部滚动，避免遮挡 footer */
+    padding-bottom: 0 !important; /* footer 自己处理 safe-area */
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
   .sidebar.collapsed {
-    width: 245px !important;
-    min-width: 245px !important;
-    flex: 0 0 245px !important;
     transform: translateX(-100%);
   }
 
@@ -1947,19 +1943,17 @@ watch(
 /* 移动端覆盖：让可滚动区域自适应，避免挤压底部用户栏 */
 @media (max-width: 768px) {
   .sidebar-content {
-    /* flex: 1 占满剩余空间，min-height: 0 允许收缩 */
-    flex: 1;
-    min-height: 0;
+    flex: 1 1 0 !important; /* 占满剩余空间 */
+    min-height: 0 !important; /* 允许收缩 */
+    max-height: calc(100% - 80px) !important; /* 预留 footer 高度 */
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 由 sessions-section 滚动 */
+    overflow: hidden;
   }
   .sessions-section {
-    /* 使用 flex: 1 自适应剩余空间 */
     flex: 1;
     min-height: 0;
-    max-height: none; /* 移除固定 max-height，让 flex 控制 */
-    overflow-y: auto; /* 在这里滚动 */
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
@@ -1968,45 +1962,32 @@ watch(
     flex: 1;
     overflow-y: auto !important;
     overflow-x: hidden;
-    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
-    /* iOS Safari 需要这个才能显示滚动条 */
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
-  /* iOS/移动端滚动条样式 - 简化为更兼容的样式 */
+  /* iOS/移动端滚动条样式 */
   .sessions-list::-webkit-scrollbar {
     width: 6px;
     -webkit-appearance: none;
   }
   .sessions-list::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.08) !important;
-    border-radius: 7px !important;
-    margin: 4px 0 !important;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 7px;
   }
   .sessions-list::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.45) !important;
-    border-radius: 7px !important;
-    border: 3px solid rgba(0, 0, 0, 0.05) !important; /* 边框让滚动条更明显 */
-    background-clip: padding-box !important;
-    min-height: 50px !important;
-  }
-  .sessions-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.6) !important;
-    background-clip: padding-box !important;
-  }
-  .sessions-list::-webkit-scrollbar-thumb:active {
-    background: rgba(0, 0, 0, 0.7) !important;
-    background-clip: padding-box !important;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 7px;
+    min-height: 50px;
   }
   .sidebar-footer {
-    /* 不随滚动，固定在 flex 底部 */
-    flex-shrink: 0 !important;
-    flex-grow: 0 !important;
-    padding: 12px 8px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    background: var(--bg-primary);
-    border-top: 1px solid var(--border-light);
-    min-height: 60px;
-    box-sizing: border-box;
+    flex: 0 0 auto !important;
+    height: 80px !important; /* 固定高度 */
+    min-height: 80px !important;
+    padding: 12px 8px !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    background: var(--bg-primary) !important;
+    border-top: 1px solid var(--border-light) !important;
+    box-sizing: border-box !important;
     z-index: 10;
   }
 }
