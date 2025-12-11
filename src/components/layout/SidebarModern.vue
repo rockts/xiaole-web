@@ -1967,25 +1967,25 @@ watch(
     -webkit-overflow-scrolling: touch;
     /* Firefox */
     scrollbar-width: thin;
-    scrollbar-color: rgba(128, 128, 128, 0.5) rgba(128, 128, 128, 0.1);
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
   }
-  /* Chrome/Safari/Edge 滚动条 */
+  /* Chrome/Safari/Edge 滚动条 - 浅色滚动条在深色背景上 */
   .sessions-list::-webkit-scrollbar {
     width: 6px;
     height: 6px;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05);
   }
   .sessions-list::-webkit-scrollbar-track {
-    background: rgba(128, 128, 128, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
   }
   .sessions-list::-webkit-scrollbar-thumb {
-    background: rgba(128, 128, 128, 0.4);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 3px;
     min-height: 40px;
   }
   .sessions-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(128, 128, 128, 0.6);
+    background: rgba(255, 255, 255, 0.4);
   }
   .sidebar-footer {
     flex: 0 0 auto !important;
