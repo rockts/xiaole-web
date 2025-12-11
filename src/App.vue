@@ -1,12 +1,12 @@
 <template>
-  <div class="app-layout">
+  <div class="app-layout" ref="appLayoutRef">
     <SidebarModern v-if="authStore.isAuthenticated" ref="sidebarRef" />
     <div class="main-content">
       <TopBar
         v-if="authStore.isAuthenticated"
         @toggle-sidebar="handleToggleSidebar"
       />
-      <div class="content-wrapper">
+      <div class="content-wrapper" ref="contentWrapperRef" @scroll="onContentScroll">
         <router-view v-slot="{ Component }">
           <component :is="Component" />
         </router-view>
@@ -21,18 +21,73 @@ import SidebarModern from "@/components/layout/SidebarModern.vue";
 import TopBar from "@/components/layout/TopBar.vue";
 import ReminderNotification from "@/components/common/ReminderNotification.vue";
 import LoadingView from "@/views/LoadingView.vue";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, nextTick } from "vue";
 import { useWebSocket } from "@/composables/useWebSocket";
 import { useAuthStore } from "@/stores/auth";
+import { useRoute } from "vue-router";
 
 // Force rebuild comment
 const authStore = useAuthStore();
+const route = useRoute();
 const sidebarRef = ref(null);
+const appLayoutRef = ref(null);
+const contentWrapperRef = ref(null);
 
 const handleToggleSidebar = () => {
   if (sidebarRef.value) {
     sidebarRef.value.toggle();
   }
+};
+
+// 移动端内容区滚动条
+let contentScrollTimer = null;
+const onContentScroll = () => {
+  // 对话页面有自己的滚动条逻辑，跳过
+  if (route.path.startsWith('/chat')) return;
+  if (window.innerWidth > 768) return;
+  
+  const el = contentWrapperRef.value;
+  const root = appLayoutRef.value;
+  if (!el || !root) return;
+  
+  const { scrollTop, scrollHeight, clientHeight } = el;
+  if (scrollHeight <= clientHeight) return;
+  
+  const containerRect = el.getBoundingClientRect();
+  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 40);
+  const maxScroll = scrollHeight - clientHeight;
+  const thumbTop = containerRect.top + (scrollTop / maxScroll) * (clientHeight - thumbHeight);
+  
+  let thumb = root.querySelector('.mobile-content-scrollbar');
+  if (!thumb) {
+    thumb = document.createElement('div');
+    thumb.className = 'mobile-content-scrollbar';
+    root.appendChild(thumb);
+  }
+  
+  thumb.style.cssText = `
+    position: fixed;
+    right: 2px;
+    top: ${thumbTop}px;
+    width: 4px;
+    height: ${thumbHeight}px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 2px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 50;
+  `;
+  
+  if (document.documentElement.getAttribute('data-theme') === 'light') {
+    thumb.style.background = 'rgba(0, 0, 0, 0.25)';
+  }
+  
+  thumb.style.opacity = '1';
+  
+  clearTimeout(contentScrollTimer);
+  contentScrollTimer = setTimeout(() => {
+    if (thumb) thumb.style.opacity = '0';
+  }, 1500);
 };
 
 const { connect, disconnect } = useWebSocket();

@@ -1099,13 +1099,20 @@ const updateMobileChatScrollbar = () => {
   
   const { scrollTop, scrollHeight, clientHeight } = el;
   
-  // 如果不需要滚动，隐藏
-  if (scrollHeight <= clientHeight) return;
+  // 如果不需要滚动，隐藏或移除
+  if (scrollHeight <= clientHeight) {
+    const existing = root.querySelector('.mobile-chat-scrollbar');
+    if (existing) existing.style.opacity = '0';
+    return;
+  }
+  
+  // 获取容器的实际位置
+  const containerRect = el.getBoundingClientRect();
   
   // 计算滚动条位置和高度
   const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 40);
   const maxScroll = scrollHeight - clientHeight;
-  const thumbTop = (scrollTop / maxScroll) * (clientHeight - thumbHeight);
+  const thumbTop = containerRect.top + (scrollTop / maxScroll) * (clientHeight - thumbHeight);
   
   // 创建或更新滚动条
   let thumb = root.querySelector('.mobile-chat-scrollbar');
@@ -1118,7 +1125,7 @@ const updateMobileChatScrollbar = () => {
   thumb.style.cssText = `
     position: fixed;
     right: 2px;
-    top: ${52 + thumbTop}px;
+    top: ${thumbTop}px;
     width: 4px;
     height: ${thumbHeight}px;
     background: rgba(255, 255, 255, 0.35);

@@ -206,6 +206,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
+  width: 100%;
 }
 
 .card h3 {
