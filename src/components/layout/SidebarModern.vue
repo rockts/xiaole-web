@@ -1961,6 +1961,7 @@ watch(
     max-height: none; /* 移除固定 max-height，让 flex 控制 */
     overflow-y: auto; /* 由这里滚动 */
     -webkit-overflow-scrolling: touch;
+    padding-bottom: 96px; /* 预留底部空间给 footer */
     display: flex;
     flex-direction: column;
   }
@@ -1998,10 +1999,11 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* flex-shrink: 0 确保不被压缩，margin-top: auto 推到底部 */
+    /* sticky 底部，确保可见 */
+    position: sticky;
+    bottom: 0;
     flex-shrink: 0 !important;
     flex-grow: 0 !important;
-    margin-top: auto;
     padding: 12px 8px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
     background: var(--bg-primary);
