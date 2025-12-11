@@ -93,18 +93,39 @@ export const useChatStore = defineStore('chat', () => {
             // ChatView.vue 已立即插入用户消息，这里不再重复插入
             isTyping.value = !instant
 
-            // 插入思考占位消息（保持对话顺序，添加到末尾）
-            const placeholderId = Date.now() + 1
+            // 🔧 复用已存在的 thinking 占位消息（由 ChatView 提前添加）
+            let existingThinkingIndex = -1
+            for (let i = messages.value.length - 1; i >= 0; i--) {
+                if (messages.value[i].role === 'assistant' && messages.value[i].status === 'thinking') {
+                    existingThinkingIndex = i
+                    break
+                }
+            }
+
+            let placeholderId
+            if (existingThinkingIndex !== -1) {
+                // 复用已存在的 thinking 消息
+                placeholderId = messages.value[existingThinkingIndex].id
+                console.log('💭 Reusing existing thinking message:', placeholderId)
+                // 如果是语音模式，更新状态
+                if (instant) {
+                    messages.value[existingThinkingIndex].status = 'typing'
+                    messages.value[existingThinkingIndex].content = '…'
+                }
+            } else {
+                // 如果不存在，创建新的
+                placeholderId = Date.now() + 1
+                const initialStatus = instant ? 'typing' : 'thinking'
+                console.log('💭 Created new thinking message:', placeholderId, 'status:', initialStatus)
+                messages.value.push({
+                    id: placeholderId,
+                    role: 'assistant',
+                    content: instant ? '…' : '',
+                    status: initialStatus,
+                    thinkingStartedAt: instant ? null : Date.now()
+                })
+            }
             activeTypingMessageId.value = placeholderId
-            const initialStatus = instant ? 'typing' : 'thinking'
-            console.log('💭 创建占位消息，status:', initialStatus, 'instant:', instant)
-            messages.value.push({
-                id: placeholderId,
-                role: 'assistant',
-                content: instant ? '…' : '', // 语音模式先占位省时反馈
-                status: initialStatus,
-                thinkingStartedAt: instant ? null : Date.now()
-            })
 
             const response = await api.sendMessage({
                 user_id: 'default_user',
@@ -274,7 +295,7 @@ export const useChatStore = defineStore('chat', () => {
 
         try {
             isTyping.value = true
-            
+
             // 🔧 复用已存在的 thinking 占位消息（由 ChatView 提前添加）
             // 查找最后一条 status='thinking' 的 assistant 消息
             let existingThinkingIndex = -1
@@ -284,7 +305,7 @@ export const useChatStore = defineStore('chat', () => {
                     break
                 }
             }
-            
+
             let placeholderId
             if (existingThinkingIndex !== -1) {
                 // 复用已存在的 thinking 消息
