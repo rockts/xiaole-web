@@ -1396,8 +1396,11 @@ watch(
 
 .sessions-list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   padding-right: 8px;
+  /* 标准滚动条属性（Firefox/新版Chrome支持） */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.5) transparent;
 }
 
 .section-header {
