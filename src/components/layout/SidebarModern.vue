@@ -1945,7 +1945,7 @@ watch(
   .sidebar-content {
     flex: 1 1 0 !important; /* 占满剩余空间 */
     min-height: 0 !important; /* 允许收缩 */
-    max-height: calc(100% - 80px) !important; /* 预留 footer 高度 */
+    max-height: calc(100% - 60px) !important; /* 预留 footer 高度 */
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1981,10 +1981,10 @@ watch(
   }
   .sidebar-footer {
     flex: 0 0 auto !important;
-    height: 80px !important; /* 固定高度 */
-    min-height: 80px !important;
-    padding: 12px 8px !important;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    height: 60px !important; /* 固定高度 */
+    min-height: 60px !important;
+    padding: 10px 8px !important;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
     background: var(--bg-primary) !important;
     border-top: 1px solid var(--border-light) !important;
     box-sizing: border-box !important;
