@@ -2697,7 +2697,10 @@ const sendMessage = async () => {
     status: "thinking",
   };
   messages.value.push(thinkingMsg);
-  console.log("💭 [ChatView] Thinking placeholder added:", thinkingPlaceholderId);
+  console.log(
+    "💭 [ChatView] Thinking placeholder added:",
+    thinkingPlaceholderId
+  );
 
   // 设置标志位：需要滚动到底部
   shouldScrollToBottom.value = true;
@@ -2711,7 +2714,9 @@ const sendMessage = async () => {
       if (!imagePath) {
         console.error("❌ 图片上传返回空路径");
         // 移除 thinking 占位消息
-        const thinkingIndex = messages.value.findIndex(m => m.id === thinkingPlaceholderId);
+        const thinkingIndex = messages.value.findIndex(
+          (m) => m.id === thinkingPlaceholderId
+        );
         if (thinkingIndex !== -1) {
           messages.value.splice(thinkingIndex, 1);
         }
@@ -2723,7 +2728,9 @@ const sendMessage = async () => {
           status: "done",
         });
         // 移除刚才添加的用户消息
-        const userMsgIndex = messages.value.findIndex(m => m.id === userMsg.id);
+        const userMsgIndex = messages.value.findIndex(
+          (m) => m.id === userMsg.id
+        );
         if (userMsgIndex !== -1) {
           messages.value.splice(userMsgIndex, 1);
         }
@@ -2765,7 +2772,9 @@ const sendMessage = async () => {
       } catch (e) {
         console.error("发送消息失败:", e.message);
         // 移除 thinking 占位消息
-        const thinkingIndex = messages.value.findIndex(m => m.id === thinkingPlaceholderId);
+        const thinkingIndex = messages.value.findIndex(
+          (m) => m.id === thinkingPlaceholderId
+        );
         if (thinkingIndex !== -1) {
           messages.value.splice(thinkingIndex, 1);
         }
@@ -2780,7 +2789,9 @@ const sendMessage = async () => {
   } catch (e) {
     console.error("发送消息失败:", e);
     // 移除 thinking 占位消息
-    const thinkingIndex = messages.value.findIndex(m => m.id === thinkingPlaceholderId);
+    const thinkingIndex = messages.value.findIndex(
+      (m) => m.id === thinkingPlaceholderId
+    );
     if (thinkingIndex !== -1) {
       messages.value.splice(thinkingIndex, 1);
     }

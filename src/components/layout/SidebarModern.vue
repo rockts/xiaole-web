@@ -707,7 +707,7 @@ const handleScroll = (e) => {
   }
 };
 
-// 确保初次渲染时有滚动条：如果列表未能产生滚动，自动多加载几页
+// 确保初次渲染时有滚动条：如果列表未能产生滚动，最多额外加载2页
 const ensureScrollable = async () => {
   await nextTick();
   const el = sessionsListRef.value;
@@ -724,13 +724,16 @@ const ensureScrollable = async () => {
     total: sessions.value.length,
   });
 
-  let guard = 20; // 最多尝试 20 次，避免死循环
+  // 最多额外加载 2 页，避免一次性加载所有会话
+  let extraPages = 0;
+  const maxExtraPages = 2;
   while (
     el.scrollHeight <= el.clientHeight &&
     displayedSessions.value.length < sessions.value.length &&
-    guard-- > 0
+    extraPages < maxExtraPages
   ) {
     currentPage.value++;
+    extraPages++;
     await nextTick();
   }
 };
