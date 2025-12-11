@@ -1108,6 +1108,9 @@ watch(
     top: 0;
     left: 0;
     bottom: 0; /* 用 top + bottom 代替 height */
+    height: auto; /* 覆盖桌面端的固定高度 */
+    min-height: 100vh;
+    min-height: 100dvh;
     width: 245px !important;
     min-width: 245px !important;
     flex: 0 0 245px !important;
@@ -1993,9 +1996,10 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* flex-shrink: 0 确保不被压缩 */
+    /* flex-shrink: 0 确保不被压缩，margin-top: auto 推到底部 */
     flex-shrink: 0 !important;
     flex-grow: 0 !important;
+    margin-top: auto;
     padding: 12px 8px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     background: var(--bg-primary);
