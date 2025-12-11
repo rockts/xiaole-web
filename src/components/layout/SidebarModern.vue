@@ -93,7 +93,11 @@
       <div class="sessions-section">
         <div class="sessions-list" @scroll="handleScroll" ref="sessionsListRef">
           <!-- 自定义滚动指示器 -->
-          <div class="scroll-indicator" :style="scrollIndicatorStyle" v-show="showScrollIndicator"></div>
+          <div
+            class="scroll-indicator"
+            :style="scrollIndicatorStyle"
+            v-show="showScrollIndicator"
+          ></div>
           <!-- 待办任务列表 (和历史对话一起滚动) -->
           <div class="tasks-section" v-if="incompleteTasks.length > 0">
             <div class="section-header">
@@ -666,26 +670,29 @@ let scrollIndicatorTimer = null;
 const updateScrollIndicator = (el) => {
   if (!el) return;
   const { scrollTop, scrollHeight, clientHeight } = el;
-  
+
   // 如果内容不需要滚动，隐藏指示器
   if (scrollHeight <= clientHeight) {
     showScrollIndicator.value = false;
     return;
   }
-  
+
   // 计算指示器高度和位置
-  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 30);
+  const thumbHeight = Math.max(
+    (clientHeight / scrollHeight) * clientHeight,
+    30
+  );
   const maxScrollTop = scrollHeight - clientHeight;
   const thumbTop = (scrollTop / maxScrollTop) * (clientHeight - thumbHeight);
-  
+
   scrollIndicatorStyle.value = {
     height: `${thumbHeight}px`,
-    top: `${thumbTop}px`
+    top: `${thumbTop}px`,
   };
-  
+
   // 显示指示器
   showScrollIndicator.value = true;
-  
+
   // 滚动停止后2秒隐藏
   clearTimeout(scrollIndicatorTimer);
   scrollIndicatorTimer = setTimeout(() => {
@@ -1437,17 +1444,9 @@ watch(
 
 .sessions-list {
   flex: 1;
-  overflow-y: scroll;
+  overflow-y: auto;
   padding-right: 8px;
   position: relative;
-  /* 标准滚动条属性（Firefox/新版Chrome支持） */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.5) transparent;
-  /* 隐藏原生滚动条，使用自定义指示器 */
-  -ms-overflow-style: none;
-}
-.sessions-list::-webkit-scrollbar {
-  display: none;
 }
 
 /* 自定义滚动指示器 */
@@ -2157,12 +2156,22 @@ watch(
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
