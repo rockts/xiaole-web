@@ -238,10 +238,16 @@ onMounted(() => {
 <style scoped>
 .doc-detail-view {
   padding: var(--space-xl);
-  max-width: 1000px;
-  margin: 0 auto;
+  padding-bottom: var(--space-lg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
+}
+
+@media (max-width: 768px) {
+  .doc-detail-view {
+    padding: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .nav-header {

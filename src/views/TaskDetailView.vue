@@ -444,9 +444,15 @@ watch(
 
 <style scoped>
 .task-detail-view {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
+  padding: var(--space-xl);
+  padding-bottom: var(--space-lg);
+}
+
+@media (max-width: 768px) {
+  .task-detail-view {
+    padding: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .card {
