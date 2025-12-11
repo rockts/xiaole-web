@@ -3999,11 +3999,11 @@ const feedbackMessage = async (message, type) => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  color: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: #374151;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4013,12 +4013,34 @@ const feedbackMessage = async (message, type) => {
   animation: fadeInUp 0.3s ease;
 }
 
+/* 浅色主题 hover */
+.scroll-to-bottom:hover {
+  transform: translateX(-50%) translateY(-4px) scale(1.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 1);
+}
+
+.scroll-to-bottom:active {
+  transform: translateX(-50%) translateY(-2px) scale(0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
 /* 深色主题 - 黑色半透明圆圈 */
 [data-theme="dark"] .scroll-to-bottom {
   background: rgba(0, 0, 0, 0.6);
   border-color: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .scroll-to-bottom:hover {
+  transform: translateX(-50%) translateY(-4px) scale(1.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .scroll-to-bottom:active {
+  transform: translateX(-50%) translateY(-2px) scale(0.95);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .scroll-icon {
@@ -4050,23 +4072,6 @@ const feedbackMessage = async (message, type) => {
   stroke-width: 2 !important;
 }
 
-.scroll-to-bottom:hover {
-  transform: translateX(-50%) translateY(-4px) scale(1.08);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="dark"] .scroll-to-bottom:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.35);
-}
-
-.scroll-to-bottom:active {
-  transform: translateX(-50%) translateY(-2px) scale(0.95);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="dark"] .scroll-to-bottom:active {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
-}
 .md-content :deep(ul),
 .md-content :deep(ol) {
   padding-left: 1.5em;
