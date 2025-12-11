@@ -6,7 +6,11 @@
         v-if="authStore.isAuthenticated"
         @toggle-sidebar="handleToggleSidebar"
       />
-      <div class="content-wrapper" ref="contentWrapperRef" @scroll="onContentScroll">
+      <div
+        class="content-wrapper"
+        ref="contentWrapperRef"
+        @scroll="onContentScroll"
+      >
         <router-view v-slot="{ Component }">
           <component :is="Component" />
         </router-view>
@@ -43,28 +47,32 @@ const handleToggleSidebar = () => {
 let contentScrollTimer = null;
 const onContentScroll = () => {
   // 对话页面有自己的滚动条逻辑，跳过
-  if (route.path.startsWith('/chat')) return;
+  if (route.path.startsWith("/chat")) return;
   if (window.innerWidth > 768) return;
-  
+
   const el = contentWrapperRef.value;
   const root = appLayoutRef.value;
   if (!el || !root) return;
-  
+
   const { scrollTop, scrollHeight, clientHeight } = el;
   if (scrollHeight <= clientHeight) return;
-  
+
   const containerRect = el.getBoundingClientRect();
-  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 40);
+  const thumbHeight = Math.max(
+    (clientHeight / scrollHeight) * clientHeight,
+    40
+  );
   const maxScroll = scrollHeight - clientHeight;
-  const thumbTop = containerRect.top + (scrollTop / maxScroll) * (clientHeight - thumbHeight);
-  
-  let thumb = root.querySelector('.mobile-content-scrollbar');
+  const thumbTop =
+    containerRect.top + (scrollTop / maxScroll) * (clientHeight - thumbHeight);
+
+  let thumb = root.querySelector(".mobile-content-scrollbar");
   if (!thumb) {
-    thumb = document.createElement('div');
-    thumb.className = 'mobile-content-scrollbar';
+    thumb = document.createElement("div");
+    thumb.className = "mobile-content-scrollbar";
     root.appendChild(thumb);
   }
-  
+
   thumb.style.cssText = `
     position: fixed;
     right: 2px;
@@ -77,16 +85,16 @@ const onContentScroll = () => {
     transition: opacity 0.3s;
     z-index: 50;
   `;
-  
-  if (document.documentElement.getAttribute('data-theme') === 'light') {
-    thumb.style.background = 'rgba(0, 0, 0, 0.25)';
+
+  if (document.documentElement.getAttribute("data-theme") === "light") {
+    thumb.style.background = "rgba(0, 0, 0, 0.25)";
   }
-  
-  thumb.style.opacity = '1';
-  
+
+  thumb.style.opacity = "1";
+
   clearTimeout(contentScrollTimer);
   contentScrollTimer = setTimeout(() => {
-    if (thumb) thumb.style.opacity = '0';
+    if (thumb) thumb.style.opacity = "0";
   }, 1500);
 };
 

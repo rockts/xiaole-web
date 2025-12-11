@@ -47,15 +47,16 @@ api.interceptors.response.use(
     async error => {
         const config = error.config
 
-        // 处理 401 未授权
+        // 处理 401 未授权 - 清除认证并跳转登录
         if (error.response && error.response.status === 401) {
+            console.warn('🔐 401 Unauthorized, redirecting to login...')
             const authStore = useAuthStore()
             authStore.logout()
-            // 可以在这里触发重定向，或者由路由守卫处理
+            // 强制跳转到登录页
             if (window.location.pathname !== '/login') {
-                window.location.href = '/login'
+                window.location.replace('/login')
             }
-            return Promise.reject(error)
+            return Promise.reject(new Error('认证已过期，请重新登录'))
         }
 
         // 处理 404 错误 - 改进错误信息格式

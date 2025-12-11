@@ -666,28 +666,31 @@ const updateMobileScrollbar = () => {
   const el = sessionsListRef.value;
   const section = sessionsSectionRef.value;
   if (!el || !section || window.innerWidth > 768) return;
-  
+
   const { scrollTop, scrollHeight, clientHeight } = el;
-  
+
   // 如果不需要滚动，隐藏
   if (scrollHeight <= clientHeight) {
     showMobileScrollbar.value = false;
     return;
   }
-  
+
   // 计算滚动条位置和高度
-  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 30);
+  const thumbHeight = Math.max(
+    (clientHeight / scrollHeight) * clientHeight,
+    30
+  );
   const maxScroll = scrollHeight - clientHeight;
   const thumbTop = (scrollTop / maxScroll) * (clientHeight - thumbHeight);
-  
+
   // 创建或更新滚动条
-  let thumb = section.querySelector('.mobile-scrollbar-thumb');
+  let thumb = section.querySelector(".mobile-scrollbar-thumb");
   if (!thumb) {
-    thumb = document.createElement('div');
-    thumb.className = 'mobile-scrollbar-thumb';
+    thumb = document.createElement("div");
+    thumb.className = "mobile-scrollbar-thumb";
     section.appendChild(thumb);
   }
-  
+
   thumb.style.cssText = `
     position: absolute;
     right: 2px;
@@ -700,18 +703,18 @@ const updateMobileScrollbar = () => {
     transition: opacity 0.3s;
     z-index: 10;
   `;
-  
+
   // 浅色模式
-  if (document.documentElement.getAttribute('data-theme') === 'light') {
-    thumb.style.background = 'rgba(0, 0, 0, 0.25)';
+  if (document.documentElement.getAttribute("data-theme") === "light") {
+    thumb.style.background = "rgba(0, 0, 0, 0.25)";
   }
-  
-  thumb.style.opacity = '1';
-  
+
+  thumb.style.opacity = "1";
+
   // 滚动停止后淡出
   clearTimeout(scrollbarTimer);
   scrollbarTimer = setTimeout(() => {
-    if (thumb) thumb.style.opacity = '0';
+    if (thumb) thumb.style.opacity = "0";
   }, 1500);
 };
 

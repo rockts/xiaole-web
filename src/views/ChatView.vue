@@ -1096,32 +1096,36 @@ const updateMobileChatScrollbar = () => {
   const el = chatContainer.value;
   const root = chatViewRoot.value;
   if (!el || !root || window.innerWidth > 768) return;
-  
+
   const { scrollTop, scrollHeight, clientHeight } = el;
-  
+
   // 如果不需要滚动，隐藏或移除
   if (scrollHeight <= clientHeight) {
-    const existing = root.querySelector('.mobile-chat-scrollbar');
-    if (existing) existing.style.opacity = '0';
+    const existing = root.querySelector(".mobile-chat-scrollbar");
+    if (existing) existing.style.opacity = "0";
     return;
   }
-  
+
   // 获取容器的实际位置
   const containerRect = el.getBoundingClientRect();
-  
+
   // 计算滚动条位置和高度
-  const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 40);
+  const thumbHeight = Math.max(
+    (clientHeight / scrollHeight) * clientHeight,
+    40
+  );
   const maxScroll = scrollHeight - clientHeight;
-  const thumbTop = containerRect.top + (scrollTop / maxScroll) * (clientHeight - thumbHeight);
-  
+  const thumbTop =
+    containerRect.top + (scrollTop / maxScroll) * (clientHeight - thumbHeight);
+
   // 创建或更新滚动条
-  let thumb = root.querySelector('.mobile-chat-scrollbar');
+  let thumb = root.querySelector(".mobile-chat-scrollbar");
   if (!thumb) {
-    thumb = document.createElement('div');
-    thumb.className = 'mobile-chat-scrollbar';
+    thumb = document.createElement("div");
+    thumb.className = "mobile-chat-scrollbar";
     root.appendChild(thumb);
   }
-  
+
   thumb.style.cssText = `
     position: fixed;
     right: 2px;
@@ -1134,18 +1138,18 @@ const updateMobileChatScrollbar = () => {
     transition: opacity 0.3s;
     z-index: 50;
   `;
-  
+
   // 浅色模式
-  if (document.documentElement.getAttribute('data-theme') === 'light') {
-    thumb.style.background = 'rgba(0, 0, 0, 0.25)';
+  if (document.documentElement.getAttribute("data-theme") === "light") {
+    thumb.style.background = "rgba(0, 0, 0, 0.25)";
   }
-  
-  thumb.style.opacity = '1';
-  
+
+  thumb.style.opacity = "1";
+
   // 滚动停止后淡出
   clearTimeout(chatScrollbarTimer);
   chatScrollbarTimer = setTimeout(() => {
-    if (thumb) thumb.style.opacity = '0';
+    if (thumb) thumb.style.opacity = "0";
   }, 1500);
 };
 
@@ -2355,7 +2359,7 @@ const onScroll = () => {
   if (showQuoteBtn.value) {
     showQuoteBtn.value = false;
   }
-  
+
   // 更新移动端自定义滚动条
   updateMobileChatScrollbar();
 };
