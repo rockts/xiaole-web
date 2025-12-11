@@ -146,6 +146,7 @@
       v-if="showShareDialog"
       :title="shareDialogTitle"
       :share-url="shareDialogUrl"
+      :messages="sharePreviewMessages"
       share-mode="session"
       @close="showShareDialog = false"
     />
@@ -172,6 +173,7 @@ const emit = defineEmits(["toggle-sidebar"]);
 const showShareDialog = ref(false);
 const shareDialogUrl = ref("");
 const shareDialogTitle = ref("分享对话");
+const sharePreviewMessages = ref([]);
 // 移动端判断
 const isMobile = ref(window.innerWidth <= 768);
 const showMore = ref(false);
@@ -198,6 +200,8 @@ const shareCurrent = () => {
   if (sessionId) {
     shareDialogTitle.value = chatStore.sessionInfo?.title || "分享对话";
     shareDialogUrl.value = `${window.location.origin}/share/${sessionId}`;
+    // 获取最近消息作为预览
+    sharePreviewMessages.value = (messages.value || []).slice(-4);
     showShareDialog.value = true;
     closeMore();
   } else {

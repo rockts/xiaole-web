@@ -1036,6 +1036,7 @@
       :title="shareDialogTitle"
       :share-url="shareDialogUrl"
       :share-mode="shareMode"
+      :messages="shareMessages"
       @close="showShareDialog = false"
     />
 
@@ -1184,6 +1185,7 @@ const showShareDialog = ref(false);
 const shareDialogUrl = ref("");
 const shareDialogTitle = ref("分享对话");
 const shareMode = ref("session"); // 'session' | 'message'
+const shareMessages = ref([]); // 分享时的消息列表
 
 // 语音模式状态
 const showVoiceMode = ref(false);
@@ -2200,16 +2202,24 @@ const shareMessage = async (message) => {
 
   const sessionId = route.params.sessionId;
   if (sessionId) {
-    // 单条消息分享：带上消息ID参数
-    const messageId = message.id || message.message_id;
+    // 单条消息分享：找到这条消息及其上下文
+    const msgIndex = messages.value.findIndex(m => 
+      (m.id || m.message_id) === (message.id || message.message_id)
+    );
+    // 获取当前消息和之前的一条用户消息作为预览
+    const contextMessages = [];
+    if (msgIndex > 0) {
+      contextMessages.push(messages.value[msgIndex - 1]);
+    }
+    contextMessages.push(message);
+    
     shareMode.value = "message";
-    shareDialogTitle.value = "分享消息";
+    shareDialogTitle.value = sessionInfo.value?.title || "分享消息";
+    shareMessages.value = contextMessages;
     shareDialogUrl.value =
       typeof window !== "undefined" && window.location
-        ? `${window.location.origin}/share/${sessionId}${
-            messageId ? `?msg=${messageId}` : ""
-          }`
-        : `/share/${sessionId}${messageId ? `?msg=${messageId}` : ""}`;
+        ? `${window.location.origin}/share/${sessionId}`
+        : `/share/${sessionId}`;
     showShareDialog.value = true;
   } else {
     // 如果没有会话ID，直接复制文本
@@ -2228,6 +2238,7 @@ const shareSession = () => {
   if (sessionId) {
     shareMode.value = "session";
     shareDialogTitle.value = sessionInfo.value?.title || "分享对话";
+    shareMessages.value = messages.value.slice(-4); // 最近4条消息作为预览
     shareDialogUrl.value =
       typeof window !== "undefined" && window.location
         ? `${window.location.origin}/share/${sessionId}`
