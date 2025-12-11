@@ -475,6 +475,7 @@ export const useChatStore = defineStore('chat', () => {
             const formData = new FormData()
             formData.append('file', file)
 
+            console.log('📤 Uploading to:', import.meta.env.VITE_API_BASE + '/vision/upload')
             const response = await api.uploadImage(formData)
             console.log('✅ chatStore.uploadImage success:', response)
 
@@ -487,10 +488,16 @@ export const useChatStore = defineStore('chat', () => {
             console.warn('⚠️ Unknown response format from uploadImage:', response)
             return response.file_path || response.path || response.url || null
         } catch (error) {
-            console.error('Failed to upload image:', error)
+            console.error('❌ Failed to upload image:', error)
+            console.error('❌ Error name:', error.name)
+            console.error('❌ Error message:', error.message)
             if (error.response) {
-                console.error('Error response:', JSON.stringify(error.response.data, null, 2))
-                console.error('Error status:', error.response.status)
+                console.error('❌ Error response data:', JSON.stringify(error.response.data, null, 2))
+                console.error('❌ Error response status:', error.response.status)
+                console.error('❌ Error response headers:', error.response.headers)
+            } else if (error.request) {
+                console.error('❌ No response received (network error)')
+                console.error('❌ Request details:', error.request)
             }
             return null
         }

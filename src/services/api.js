@@ -243,7 +243,14 @@ export default {
     },
 
     uploadImage(formData) {
-        return api.post('/vision/upload', formData)
+        // 图片上传：增加超时时间，禁用自动重试
+        return api.post('/vision/upload', formData, {
+            timeout: 60000, // 60秒超时
+            retryCount: MAX_RETRIES, // 禁用重试（已达最大）
+            headers: {
+                // FormData 不需要设置 Content-Type，让浏览器自动处理 boundary
+            }
+        })
     },
 
     // 记忆相关
