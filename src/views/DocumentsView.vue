@@ -562,4 +562,92 @@ onMounted(() => {
   background: #dc2626;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .documents-view {
+    padding: 16px;
+  }
+
+  .header {
+    margin-bottom: var(--space-lg);
+    text-align: left;
+  }
+
+  .header h3 {
+    font-size: 20px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .upload-card {
+    padding: var(--space-xl);
+    margin-bottom: var(--space-lg);
+  }
+
+  .upload-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+
+  .primary-text {
+    font-size: 14px;
+  }
+
+  .secondary-text {
+    font-size: 11px;
+  }
+
+  .doc-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .doc-card {
+    padding: var(--space-md);
+  }
+
+  .doc-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+  }
+
+  .doc-title {
+    font-size: 14px;
+  }
+
+  .doc-meta {
+    font-size: 11px;
+  }
+
+  .btn-delete {
+    opacity: 1;
+  }
+
+  .confirm-dialog {
+    margin: 16px;
+    padding: 20px;
+  }
+
+  .confirm-title {
+    font-size: 16px;
+  }
+
+  .confirm-message {
+    font-size: 13px;
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .btn-cancel,
+  .btn-confirm-delete {
+    width: 100%;
+    padding: 12px;
+  }
+}
 </style>

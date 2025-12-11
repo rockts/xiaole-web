@@ -428,4 +428,78 @@ onUnmounted(() => {
   background: #dc2626;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .tasks-view {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .card h3 {
+    font-size: 18px;
+  }
+
+  .tasks-header {
+    flex-direction: column;
+  }
+
+  .tasks-header select {
+    width: 100%;
+  }
+
+  .task-item {
+    padding: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .task-content {
+    width: 100%;
+  }
+
+  .task-title {
+    font-size: 14px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .task-meta {
+    gap: 8px;
+  }
+
+  .delete-btn {
+    align-self: flex-end;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .confirm-dialog {
+    margin: 16px;
+    padding: 20px;
+  }
+
+  .confirm-title {
+    font-size: 16px;
+  }
+
+  .confirm-message {
+    font-size: 13px;
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .btn-cancel,
+  .btn-delete {
+    width: 100%;
+    padding: 12px;
+  }
+}
 </style>
