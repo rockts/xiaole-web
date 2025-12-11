@@ -2506,10 +2506,18 @@ button:disabled {
         max-width: 50vw !important;
     }
 
-    /* 聊天区域调整 */
+    /* 聊天区域调整 - 移动端核心布局 */
+    .chat-container {
+        flex: 1;
+        min-height: 0;
+        /* 关键：允许 flex 子项收缩 */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .chat-inner {
-        padding: 60px 12px 120px !important;
-        /* 顶部留出TopBar空间，底部留出输入框空间 */
+        padding: 12px 12px 70px !important;
+        /* 底部留出输入框空间 */
     }
 
     /* 消息气泡优化 */

@@ -56,7 +56,7 @@
     <div
       class="chat-container"
       ref="chatContainer"
-      :style="{ visibility: isLoadingSession ? 'hidden' : 'visible' }"
+      :class="{ 'is-loading': isLoadingSession }"
     >
       <div class="chat-inner">
         <div
@@ -3766,11 +3766,19 @@ const feedbackMessage = async (message, type) => {
   overflow-y: auto;
   padding: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* 改为 column 布局 */
+  align-items: center; /* 水平居中 */
   background: var(--bg-primary);
   /* margin-bottom: 100px; Removed to prevent layout jump on focus */
   scroll-behavior: auto; /* 确保初始滚动是瞬间的 */
+  min-height: 0; /* 确保 flex 子项可以收缩 */
 }
+
+/* 加载状态：仅禁用交互，不隐藏内容 */
+.chat-container.is-loading {
+  pointer-events: none;
+}
+/* 移除 opacity 过渡，避免内容闪烁 */
 /* 键盘弹出时，减少底部间距以避免过多空白 */
 /* .chat-view.keyboard-open .chat-container {
   margin-bottom: 8px;
@@ -3779,7 +3787,7 @@ const feedbackMessage = async (message, type) => {
   width: 100%;
   max-width: 42rem;
   padding: 16px 20px;
-  padding-bottom: 20px; /* 减少底部内边距,依靠.message:last-child的padding */
+  padding-bottom: 80px; /* 底部留出输入框空间 */
   position: relative;
 }
 .message {
@@ -4825,10 +4833,35 @@ const feedbackMessage = async (message, type) => {
   }
 }
 
-/* 移动端适配优化 */
+/* 移动端适配优化 - 768px 以下 */
+@media (max-width: 768px) {
+  .chat-view {
+    height: 100%; /* 使用父容器高度 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 防止整体滚动 */
+  }
+
+  /* 对话容器：确保正确的 flex 布局 */
+  .chat-container {
+    flex: 1;
+    min-height: 0; /* 关键：允许 flex 子项收缩 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 移动端内容区域的 padding */
+  .chat-inner {
+    padding-top: 16px; /* 顶部留出 TopBar 空间 */
+    padding-bottom: 70px; /* 底部留出输入框空间 */
+  }
+}
+
+/* 更小屏幕的额外优化 */
 @media (max-width: 480px) {
   .chat-view {
     height: 100dvh; /* 适配移动端动态视口高度 */
+    height: calc(var(--app-vh, 100vh)); /* 备用：使用 JS 计算的高度 */
   }
 
   /* 移动端空状态：欢迎语居中偏下，输入框固定底部 */
@@ -4849,7 +4882,7 @@ const feedbackMessage = async (message, type) => {
   }
 
   .chat-view.empty .chat-container {
-    visibility: hidden;
+    opacity: 0;
     pointer-events: none;
     position: absolute;
   }
@@ -4866,13 +4899,13 @@ const feedbackMessage = async (message, type) => {
 
   .chat-inner {
     padding: 12px;
-    padding-top: 60px; /* 顶部留出 TopBar 空间 */
-    padding-bottom: 100px; /* 底部留出输入框空间 */
+    padding-top: 12px; /* 移动端：TopBar 空间已由 main-content padding-top 处理 */
+    padding-bottom: 70px; /* 底部留出输入框空间 */
   }
 
-  /* 移动端最后一条消息添加底部空间 */
+  /* 移动端最后一条消息 - 不需要额外 padding */
   .message:last-child {
-    padding-bottom: 80px !important;
+    padding-bottom: 0;
   }
 
   .user-bubble {
@@ -4942,13 +4975,13 @@ const feedbackMessage = async (message, type) => {
   }
   /* 最后一条消息的工具栏添加更多底部间距，确保不被输入框遮挡 */
   .message:last-child .message-toolbar {
-    margin-bottom: 32px;
-    padding-bottom: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 4px;
   }
 
-  /* 助手消息的工具栏，增加额外底部空间 */
+  /* 助手消息的工具栏，不需要额外底部空间 */
   .message.assistant:last-child {
-    padding-bottom: 100px;
+    padding-bottom: 0;
   }
 
   .message.user .message-toolbar {

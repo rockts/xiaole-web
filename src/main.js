@@ -6,6 +6,21 @@ import './assets/styles/main.css'
 import 'highlight.js/styles/github-dark.css'
 // import { healthCheck } from './utils/healthCheck' // 已禁用: WebSocket 已监控连接
 
+// 🔧 尽早设置移动端视口高度，解决 100vh 在真机上的问题
+(function setViewportHeight() {
+  const vh = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty('--app-vh', `${vh}px`);
+  // 监听视口变化
+  const update = () => {
+    const newVh = window.visualViewport?.height || window.innerHeight;
+    document.documentElement.style.setProperty('--app-vh', `${newVh}px`);
+  };
+  window.addEventListener('resize', update);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', update);
+  }
+})();
+
 // 控制台调试提示
 console.log(
   '%c小乐 AI 管家 %cv0.9.1',

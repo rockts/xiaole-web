@@ -59,6 +59,7 @@ watch(
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* 移动端动态视口高度 */
   overflow: hidden;
   background: var(--bg-primary);
 }
@@ -73,19 +74,27 @@ watch(
 
 .content-wrapper {
   flex: 1;
-  overflow: auto;
-  background: var(--bg-secondary);
-  /* 为移动设备添加底部安全区内边距 */
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-bottom: constant(safe-area-inset-bottom);
+  overflow: hidden; /* 改为 hidden，让子组件自己处理滚动 */
+  background: var(--bg-primary); /* 统一背景色 */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 关键：允许 flex 子项收缩 */
 }
 
 @media (max-width: 768px) {
+  .app-layout {
+    height: 100dvh;
+    height: calc(var(--app-vh, 100vh)); /* JS 计算的后备高度 */
+  }
   .main-content {
-    padding-top: 52px; /* 顶部栏固定后，所有页面都给内容留出空间 */
+    /* 移动端：TopBar 是 fixed，需要给内容留出顶部空间 */
+    padding-top: 52px;
   }
   .content-wrapper {
-    padding-top: 0;
+    /* 移动端：确保内容填满 */
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
   }
 }
 </style>
