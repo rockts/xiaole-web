@@ -4,23 +4,23 @@
 
 在 Cloudflare Dashboard 中配置:
 
-1. **项目名称**: `xiaole-web` (或你喜欢的名称)
-2. **Git 仓库**: `rockts/xiaole-ai`
+1. **项目名称**: `xiaole-web`
+2. **Git 仓库**: `rockts/xiaole-web`
 3. **生产分支**: `main`
 4. **构建设置**:
    - **Framework preset**: None (手动配置)
-   - **Build command**: `cd frontend && npm install && npm run build`
-   - **Build output directory**: `frontend/dist`
+   - **Build command**: `npm install && npm run build`
+   - **Build output directory**: `dist`
    - **Root directory**: `/` (项目根目录)
 
 ## 环境变量
 
 在 Cloudflare Pages 设置中添加:
 
-| 变量名 | 值 |
-|--------|-----|
+| 变量名          | 值                     |
+| --------------- | ---------------------- |
 | `VITE_API_BASE` | `https://api.leke.xyz` |
-| `NODE_VERSION` | `20` |
+| `NODE_VERSION`  | `20`                   |
 
 ## 部署后
 

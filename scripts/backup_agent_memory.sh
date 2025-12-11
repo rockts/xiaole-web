@@ -2,7 +2,7 @@
 
 SOURCE=".agent_local"
 # 使用 Synology Drive 同步（iCloud 同步不稳定）
-DEST="$HOME/synologydrive/drive/xiaole_agent"
+DEST="$HOME/SynologyDrive/drive/xiaole_agent"
 
 echo "🔄 正在备份小乐 Agent 记忆..."
 
