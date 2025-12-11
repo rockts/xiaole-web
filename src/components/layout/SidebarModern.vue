@@ -1120,8 +1120,7 @@ watch(
     padding-bottom: env(safe-area-inset-bottom);
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* 整体滚动，包含 footer */
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden; /* 由内部滚动，避免遮挡 footer */
   }
 
   .sidebar.collapsed {
@@ -1953,14 +1952,15 @@ watch(
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: visible; /* 由外层 sidebar 负责滚动 */
+    overflow: hidden; /* 由 sessions-section 滚动 */
   }
   .sessions-section {
     /* 使用 flex: 1 自适应剩余空间 */
     flex: 1;
     min-height: 0;
     max-height: none; /* 移除固定 max-height，让 flex 控制 */
-    overflow: visible;
+    overflow-y: auto; /* 在这里滚动 */
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
   }
