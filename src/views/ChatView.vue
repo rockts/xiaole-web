@@ -92,13 +92,22 @@
               </div>
             </div>
             <template v-if="message.status === 'thinking'">
-              <div class="thinking-wrapper">
-                <div class="thinking-animation">
-                  <div class="thinking-dot"></div>
-                  <div class="thinking-dot"></div>
-                  <div class="thinking-dot"></div>
+              <div class="skeleton-wrapper">
+                <!-- 骨架屏：模拟消息气泡占位 -->
+                <div class="skeleton-content">
+                  <div class="skeleton-line skeleton-line-long"></div>
+                  <div class="skeleton-line skeleton-line-medium"></div>
+                  <div class="skeleton-line skeleton-line-short"></div>
                 </div>
-                <span class="thinking-label">思考中</span>
+                <!-- 思考动画指示器 -->
+                <div class="thinking-indicator">
+                  <div class="thinking-animation">
+                    <div class="thinking-dot"></div>
+                    <div class="thinking-dot"></div>
+                    <div class="thinking-dot"></div>
+                  </div>
+                  <span class="thinking-label">小乐思考中</span>
+                </div>
               </div>
             </template>
             <template v-else>
@@ -4843,6 +4852,79 @@ const feedbackMessage = async (message, type) => {
     transform: translateY(-6px);
     opacity: 0.5;
   }
+}
+
+.skeleton-wrapper {
+  background: var(--bg-secondary);
+  padding: 16px 20px;
+  border-radius: var(--radius-xl);
+  border-bottom-left-radius: var(--radius-xs);
+  min-width: 200px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  box-shadow: var(--shadow-sm);
+  margin-top: 4px;
+  margin-bottom: 80px;
+  scroll-margin-bottom: 120px;
+  position: relative;
+  z-index: 999 !important;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+/* 骨架屏内容区域 */
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 骨架屏文字行 */
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-line-long {
+  width: 100%;
+}
+
+.skeleton-line-medium {
+  width: 75%;
+}
+
+.skeleton-line-short {
+  width: 50%;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 思考指示器区域 */
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-light);
 }
 
 .thinking-wrapper {
