@@ -1107,16 +1107,16 @@ watch(
     position: fixed;
     top: 0;
     left: 0;
-    height: 100vh;
-    height: 100dvh; /* 使用动态视口高度，更准确 */
-    width: 245px !important; /* 移动端展开时宽度固定 */
+    bottom: 0; /* 用 top + bottom 代替 height */
+    width: 245px !important;
     min-width: 245px !important;
     flex: 0 0 245px !important;
     transform: translateX(0);
     box-shadow: var(--shadow-lg);
     z-index: 1000;
     padding-bottom: 0;
-    /* 不用 flex，用 position 布局 */
+    display: flex;
+    flex-direction: column;
   }
 
   .sidebar.collapsed {
@@ -1943,9 +1943,9 @@ watch(
 /* 移动端覆盖：让可滚动区域自适应，避免挤压底部用户栏 */
 @media (max-width: 768px) {
   .sidebar-content {
-    /* 占满高度，但底部留出 footer 空间 */
-    height: calc(100% - 80px);
-    max-height: calc(100% - 80px);
+    /* flex: 1 占满剩余空间，min-height: 0 允许收缩 */
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1993,11 +1993,9 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* 强制固定在底部 */
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
+    /* flex-shrink: 0 确保不被压缩 */
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
     padding: 12px 8px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     background: var(--bg-primary);
