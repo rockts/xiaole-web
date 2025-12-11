@@ -1952,15 +1952,15 @@ watch(
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* 允许整体滚动，footer 保持在底部 */
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden; /* 让内部区域滚动，避免 footer 被卷走 */
   }
   .sessions-section {
     /* 使用 flex: 1 自适应剩余空间 */
     flex: 1;
     min-height: 0;
     max-height: none; /* 移除固定 max-height，让 flex 控制 */
-    overflow: hidden;
+    overflow-y: auto; /* 由这里滚动 */
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
   }
