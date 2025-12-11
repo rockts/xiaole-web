@@ -3800,6 +3800,7 @@ const feedbackMessage = async (message, type) => {
   display: flex;
   flex-direction: column; /* 改为 column 布局 */
   align-items: center; /* 水平居中 */
+  justify-content: flex-start; /* 内容从顶部开始，不要垂直居中 */
   background: var(--bg-primary);
   /* margin-bottom: 100px; Removed to prevent layout jump on focus */
   scroll-behavior: auto; /* 确保初始滚动是瞬间的 */
