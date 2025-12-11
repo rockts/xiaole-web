@@ -11,22 +11,40 @@ export default defineConfig({
             name: 'spa-routing',
             configureServer(server) {
                 // 在代理之前添加中间件，拦截前端路由请求
-                // 确保中间件在代理之前执行
                 server.middlewares.use((req, res, next) => {
                     const url = req.url || ''
-                    // 如果是前端路由（/chat/xxx 且不是 API 路径），不代理
-                    if (req.method === 'GET' &&
-                        url.startsWith('/chat/') &&
-                        !url.includes('?') &&
-                        !url.startsWith('/chat/stream') &&
-                        !url.startsWith('/chat/sessions') &&
-                        !url.startsWith('/chat/api')) {
-                        // 这是前端路由，让 Vite 的 SPA 路由处理
-                        // 调用 next() 让 Vite 继续处理（不会到达代理）
-                        console.log('[SPA Routing] 前端路由，跳过代理:', url)
-                        return next()
+                    
+                    // 前端路由列表 - 这些路径刷新时应该返回 index.html
+                    const frontendRoutes = [
+                        '/chat',
+                        '/memory',
+                        '/behavior',
+                        '/tasks',
+                        '/task/',
+                        '/documents',
+                        '/tools',
+                        '/reminders',
+                        '/settings',
+                        '/login',
+                        '/share/'
+                    ]
+                    
+                    // 检查是否是前端路由（GET 请求，且 Accept 头包含 text/html）
+                    const isHtmlRequest = req.method === 'GET' && 
+                        (req.headers.accept || '').includes('text/html')
+                    
+                    if (isHtmlRequest) {
+                        const isFrontendRoute = frontendRoutes.some(route => 
+                            url === route || url.startsWith(route + '/') || url.startsWith(route + '?')
+                        )
+                        
+                        if (isFrontendRoute) {
+                            console.log('[SPA] 前端路由，返回 index.html:', url)
+                            req.url = '/'
+                            return next()
+                        }
                     }
-                    // 其他请求继续处理（会到达代理）
+                    
                     next()
                 })
             }
