@@ -140,6 +140,15 @@
         </transition>
       </div>
     </div>
+
+    <!-- 分享弹窗 -->
+    <ShareDialog
+      v-if="showShareDialog"
+      :title="shareDialogTitle"
+      :share-url="shareDialogUrl"
+      share-mode="session"
+      @close="showShareDialog = false"
+    />
   </div>
 </template>
 
@@ -151,12 +160,18 @@ import { storeToRefs } from "pinia";
 import api from "@/services/api";
 import { useWebSocket } from "@/composables/useWebSocket";
 import ReminderListPopup from "@/components/common/ReminderListPopup.vue";
+import ShareDialog from "@/components/common/ShareDialog.vue";
 
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
 const { messages, currentSessionId } = storeToRefs(chatStore);
 const emit = defineEmits(["toggle-sidebar"]);
+
+// 分享弹窗状态
+const showShareDialog = ref(false);
+const shareDialogUrl = ref("");
+const shareDialogTitle = ref("分享对话");
 // 移动端判断
 const isMobile = ref(window.innerWidth <= 768);
 const showMore = ref(false);
@@ -181,8 +196,9 @@ const goto = (path) => {
 const shareCurrent = () => {
   const sessionId = route.params.sessionId;
   if (sessionId) {
-    const url = `${window.location.origin}/share/${sessionId}`;
-    window.open(url, "_blank");
+    shareDialogTitle.value = chatStore.sessionInfo?.title || "分享对话";
+    shareDialogUrl.value = `${window.location.origin}/share/${sessionId}`;
+    showShareDialog.value = true;
     closeMore();
   } else {
     alert("当前没有可分享的对话");

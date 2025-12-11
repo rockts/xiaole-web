@@ -13,7 +13,7 @@ export default defineConfig({
                 // 在代理之前添加中间件，拦截前端路由请求
                 server.middlewares.use((req, res, next) => {
                     const url = req.url || ''
-                    
+
                     // 前端路由列表 - 这些路径刷新时应该返回 index.html
                     const frontendRoutes = [
                         '/chat',
@@ -28,23 +28,23 @@ export default defineConfig({
                         '/login',
                         '/share/'
                     ]
-                    
+
                     // 检查是否是前端路由（GET 请求，且 Accept 头包含 text/html）
-                    const isHtmlRequest = req.method === 'GET' && 
+                    const isHtmlRequest = req.method === 'GET' &&
                         (req.headers.accept || '').includes('text/html')
-                    
+
                     if (isHtmlRequest) {
-                        const isFrontendRoute = frontendRoutes.some(route => 
+                        const isFrontendRoute = frontendRoutes.some(route =>
                             url === route || url.startsWith(route + '/') || url.startsWith(route + '?')
                         )
-                        
+
                         if (isFrontendRoute) {
                             console.log('[SPA] 前端路由，返回 index.html:', url)
                             req.url = '/'
                             return next()
                         }
                     }
-                    
+
                     next()
                 })
             }

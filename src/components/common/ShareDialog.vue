@@ -2,179 +2,139 @@
   <teleport to="body">
     <div class="share-overlay" @click="emit('close')">
       <div class="share-dialog" @click.stop>
+        <!-- 头部 -->
         <div class="share-header">
-          <h3 class="share-title">{{ title }}</h3>
-          <button
-            class="share-close-btn"
-            aria-label="关闭"
-            @click="emit('close')"
-          >
+          <h3 class="share-title">
+            {{ shareMode === "message" ? "分享消息" : "分享对话" }}
+          </h3>
+          <button class="close-btn" @click="emit('close')" aria-label="关闭">
             <svg
-              width="36"
-              height="36"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              stroke-width="2"
             >
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
         </div>
-        <div class="divider"></div>
 
-        <div class="preview-wrap">
-          <!-- 若已生成缩略图则直接展示 -->
-          <img
-            v-if="previewUrl"
-            class="preview-image"
-            :src="previewUrl"
-            alt="分享预览图"
-          />
-
-          <!-- 备用 HTML 预览：用于截图源或回退显示 -->
-          <div v-show="!previewUrl" class="preview-card" ref="previewCardRef">
-            <div class="preview-watermark">XiaoLe AI</div>
-
-            <!-- 摘要式布局 -->
-            <div class="summary-content">
-              <div
-                v-for="(msg, index) in previewMessages"
-                :key="index"
-                class="message-row"
-                :class="msg.role"
+        <!-- 内容区 -->
+        <div class="share-body">
+          <!-- 分享链接输入框 -->
+          <div class="link-section">
+            <div class="link-input-wrap">
+              <input
+                type="text"
+                class="link-input"
+                :value="shareUrl"
+                readonly
+                @click="$event.target.select()"
+              />
+              <button
+                class="copy-btn"
+                @click="copyLink"
+                :class="{ copied: justCopied }"
               >
-                <!-- 用户消息 -->
-                <div v-if="msg.role === 'user'" class="user-message">
-                  <div class="message-bubble">
-                    <div
-                      v-if="msg.content"
-                      class="message-text"
-                      v-html="renderMarkdown(msg.content)"
-                    ></div>
-                    <div v-if="msg.image" class="message-image-wrapper">
-                      <img
-                        :src="msg.image"
-                        class="message-image"
-                        crossorigin="anonymous"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- AI 消息 -->
-                <div v-else class="ai-message">
-                  <div class="ai-avatar">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  </div>
-                  <div class="message-content">
-                    <div class="ai-name">XiaoLe AI</div>
-                    <div
-                      v-if="msg.content"
-                      class="message-text"
-                      v-html="renderMarkdown(msg.content)"
-                    ></div>
-                    <div v-if="msg.image" class="message-image-wrapper">
-                      <img
-                        :src="msg.image"
-                        class="message-image"
-                        crossorigin="anonymous"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <svg
+                  v-if="!justCopied"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  ></path>
+                </svg>
+                <svg
+                  v-else
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>{{ justCopied ? "已复制" : "复制" }}</span>
+              </button>
             </div>
-
-            <!-- 底部渐变遮罩 -->
-            <div class="fade-overlay"></div>
           </div>
-        </div>
 
-        <div class="share-actions">
-          <button class="action-btn" @click="copyLink">
-            <div class="icon-circle">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+          <!-- 分享到社交平台 -->
+          <div class="social-section">
+            <div class="section-label">分享到</div>
+            <div class="social-buttons">
+              <button class="social-btn" @click="shareToX" title="分享到 X">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="social-btn"
+                @click="shareToLinkedIn"
+                title="分享到 LinkedIn"
               >
-                <path
-                  d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 1 0-7.07-7.07L10 5"
-                />
-                <path
-                  d="M14 11a5 5 0 0 0-7.07 0L5.5 12.41a5 5 0 1 0 7.07 7.07L14 19"
-                />
-              </svg>
-            </div>
-            <span class="action-label">复制链接</span>
-          </button>
-
-          <button class="action-btn" title="Post on X" @click="shareToX">
-            <div class="icon-circle">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="currentColor"
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="social-btn"
+                @click="shareToReddit"
+                title="分享到 Reddit"
               >
-                <path
-                  d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-                />
-              </svg>
-            </div>
-            <span class="action-label">X</span>
-          </button>
-
-          <button class="action-btn" title="LinkedIn" @click="shareToLinkedIn">
-            <div class="icon-circle">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="currentColor"
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="social-btn"
+                @click="shareToWeChat"
+                title="分享到微信"
               >
-                <path
-                  d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM0 8h5v16H0V8zm7.5 0H12v2.2h.06c.62-1.17 2.14-2.4 4.4-2.4 4.7 0 5.56 3.09 5.56 7.11V24h-5V16.5c0-1.79-.03-4.09-2.49-4.09-2.49 0-2.87 1.94-2.87 3.96V24h-5V8z"
-                />
-              </svg>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.032zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"
+                  />
+                </svg>
+              </button>
             </div>
-            <span class="action-label">LinkedIn</span>
-          </button>
-
-          <button class="action-btn" title="Reddit" @click="shareToReddit">
-            <div class="icon-circle">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path
-                  d="M22 12c0 4.42-4.48 8-10 8S2 16.42 2 12s4.48-8 10-8 10 3.58 10 8zm-15 1.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm10 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM7.5 14.5c.9 1.17 2.7 2 4.5 2s3.6-.83 4.5-2"
-                />
-              </svg>
-            </div>
-            <span class="action-label">Reddit</span>
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -182,32 +142,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { marked } from "marked";
-import api from "@/services/api";
+import { ref } from "vue";
 
 const emit = defineEmits(["close"]);
 const props = defineProps({
   title: { type: String, default: "分享" },
   shareUrl: { type: String, required: true },
+  shareMode: { type: String, default: "session" }, // 'session' | 'message'
 });
 
-const previewUrl = ref("");
-const previewCardRef = ref(null);
-const previewMessages = ref([]);
-const summaryText = ref("");
-const answerText = ref("");
-
-const renderMarkdown = (text) => {
-  if (!text) return "";
-  return marked.parse(text);
-};
+const justCopied = ref(false);
 
 const copyLink = async () => {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(props.shareUrl);
-      alert("已复制分享链接");
     } else {
       const ta = document.createElement("textarea");
       ta.value = props.shareUrl;
@@ -217,8 +166,11 @@ const copyLink = async () => {
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      alert("已复制分享链接");
     }
+    justCopied.value = true;
+    setTimeout(() => {
+      justCopied.value = false;
+    }, 2000);
   } catch (e) {
     console.error("复制失败", e);
     alert("复制失败，请重试");
@@ -226,439 +178,216 @@ const copyLink = async () => {
 };
 
 const open = (url) => window.open(url, "_blank", "noopener,noreferrer");
+
 const shareToX = () => {
   const u = encodeURIComponent(props.shareUrl);
-  const t = encodeURIComponent(props.title);
+  const t = encodeURIComponent(props.title || "来自小乐 AI 的分享");
   open(`https://twitter.com/intent/tweet?url=${u}&text=${t}`);
 };
+
 const shareToLinkedIn = () => {
   const u = encodeURIComponent(props.shareUrl);
   open(`https://www.linkedin.com/sharing/share-offsite/?url=${u}`);
 };
+
 const shareToReddit = () => {
   const u = encodeURIComponent(props.shareUrl);
-  const t = encodeURIComponent(props.title);
+  const t = encodeURIComponent(props.title || "来自小乐 AI 的分享");
   open(`https://www.reddit.com/submit?url=${u}&title=${t}`);
 };
 
-// 优先尝试服务端生成的预览图（如果后端有该能力）
-const tryServerPreview = async (id) => {
-  const url = `/share/preview/${id}.png`;
-  try {
-    await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = reject;
-      img.src = url;
-    });
-    previewUrl.value = url;
-  } catch (_) {
-    // ignore
-  }
+const shareToWeChat = () => {
+  // 微信分享需要特殊处理，这里用二维码方式
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+    props.shareUrl
+  )}`;
+  window.open(qrUrl, "_blank");
 };
-
-// 无服务端时，使用前端截图
-const htmlToImagePreview = async () => {
-  try {
-    const node = previewCardRef.value;
-    if (!node) {
-      console.warn("previewCardRef 未找到");
-      return;
-    }
-
-    // 等待 DOM 和样式完全加载
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const mod = await import("html-to-image");
-    const toPng = mod.toPng || mod.default?.toPng;
-    if (!toPng) {
-      console.warn("html-to-image toPng 方法未找到");
-      return;
-    }
-
-    console.log("开始生成预览图...");
-    const dataUrl = await toPng(node, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "#1a1a1a",
-    });
-    previewUrl.value = dataUrl;
-    console.log("预览图生成成功");
-  } catch (e) {
-    console.error("生成缩略图失败", e);
-  }
-};
-
-onMounted(async () => {
-  console.log("ShareDialog mounted, shareUrl:", props.shareUrl);
-  try {
-    const id = props.shareUrl.split("/").filter(Boolean).pop();
-    console.log("提取的会话ID:", id);
-
-    // 拉取会话最近消息以构建预览
-    try {
-      const data = await api.getSession(id);
-      const list = (data.messages || data.history || []).slice(-5);
-      console.log("获取到的消息数量:", list.length);
-
-      // 提取摘要内容 (取第一条用户消息和第一条AI回复)
-      const userMsg = list.find(
-        (m) => m.role === "user" || m.author === "user"
-      );
-      const aiMsg = list.find(
-        (m) =>
-          m.role === "assistant" || m.author === "assistant" || m.role === "ai"
-      );
-
-      summaryText.value = userMsg
-        ? (userMsg.content || "").toString().slice(0, 150)
-        : "对话内容...";
-      answerText.value = aiMsg
-        ? (aiMsg.content || "").toString().slice(0, 300)
-        : "暂无回答...";
-
-      console.log("原始消息数据:", list);
-      previewMessages.value = list.map((m) => {
-        let imagePath = null;
-        if (m.image_path) {
-          // 处理可能的路径重复问题
-          imagePath = m.image_path.startsWith("uploads/")
-            ? `/${m.image_path}`
-            : `/uploads/${m.image_path}`;
-        }
-        const msg = {
-          role: m.role || m.author || "assistant",
-          content: (m.content || "").toString().slice(0, 120),
-          image: imagePath,
-        };
-        console.log("处理后的消息:", msg);
-        return msg;
-      });
-
-      console.log("尝试服务端预览图...");
-      await tryServerPreview(id);
-
-      if (!previewUrl.value) {
-        console.log("服务端预览图不可用，使用前端截图");
-        await htmlToImagePreview();
-      } else {
-        console.log("使用服务端预览图");
-      }
-    } catch (err) {
-      console.log("会话数据获取失败，直接使用前端截图", err);
-      await htmlToImagePreview();
-    }
-  } catch (err) {
-    console.error("onMounted 错误:", err);
-    await htmlToImagePreview();
-  }
-});
 </script>
 
 <style scoped>
 .share-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
   animation: fadeIn 0.15s ease-out;
+  backdrop-filter: blur(4px);
 }
+
 .share-dialog {
-  position: relative;
   background: var(--bg-primary);
   border-radius: 16px;
-  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.35);
-  width: min(860px, 92vw);
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: min(420px, 90vw);
   overflow: hidden;
+  animation: slideUp 0.2s ease-out;
 }
+
 .share-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-light);
-  background: var(--bg-primary);
-  flex-shrink: 0;
-  z-index: 10;
 }
+
 .share-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
-.share-close-btn {
-  /* Reset positioning to flow naturally in flex header */
-  position: static;
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
 
-  background: transparent;
-  border: none;
-  /* Use text-primary for high contrast against bg-primary */
-  color: var(--text-primary);
-  opacity: 1;
-}
-
-.share-close-btn:hover {
-  transform: scale(1.1);
-  background: rgba(128, 128, 128, 0.1);
-  border-radius: 12px;
-}
-
-.share-close-btn svg {
-  width: 36px;
-  height: 36px;
-  stroke: currentColor;
-  stroke-width: 3;
-}
-
-.divider {
-  display: none;
-}
-
-.preview-wrap {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-  background: var(--bg-secondary);
-  min-height: 0;
-}
-/* 美化滚动条 */
-.preview-wrap::-webkit-scrollbar {
-  width: 6px;
-}
-.preview-wrap::-webkit-scrollbar-track {
-  background: transparent;
-}
-.preview-wrap::-webkit-scrollbar-thumb {
-  background: var(--border-heavy);
-  border-radius: 3px;
-}
-
-.preview-image {
-  width: 100%;
-  max-width: 720px;
-  border-radius: 14px;
-  border: 1px solid var(--border-light);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  height: auto;
-  object-fit: contain;
-}
-.preview-card {
-  position: relative;
-  width: 100%;
-  max-width: 720px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: #1e1e1e;
-  display: flex;
-  flex-direction: column;
-  padding: 40px 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-.preview-watermark {
-  position: absolute;
-  bottom: 20px;
-  right: 24px;
-  color: rgba(255, 255, 255, 0.2);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.summary-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.message-row {
-  display: flex;
-  width: 100%;
-}
-
-.message-row.user {
-  justify-content: flex-end;
-}
-
-.user-message .message-bubble {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px 12px 0 12px;
-  padding: 12px 16px;
-  max-width: 85%;
-  color: #fff;
-}
-
-.ai-message {
-  display: flex;
-  gap: 12px;
-  max-width: 90%;
-}
-
-.ai-avatar {
+.close-btn {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: #10a37f;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.message-content {
-  flex: 1;
-}
-
-.ai-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 4px;
-  text-transform: uppercase;
-}
-
-.message-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.message-text :deep(p) {
-  margin: 0 0 0.5em 0;
-}
-.message-text :deep(p:last-child) {
-  margin: 0;
-}
-.message-text :deep(strong) {
-  font-weight: 700;
-  color: #fff;
-}
-
-.message-image-wrapper {
-  margin-top: 8px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.message-image {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
-.fade-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: linear-gradient(
-    to bottom,
-    rgba(30, 30, 30, 0),
-    rgba(30, 30, 30, 1)
-  );
-  pointer-events: none;
-  z-index: 5;
-}
-
-.share-actions {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 20px;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-light);
-  margin-top: 0;
-  flex-shrink: 0;
-}
-
-@media (max-width: 640px) {
-  .share-actions {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    padding: 16px;
-  }
-
-  .action-btn {
-    width: 100%;
-  }
-
-  .icon-circle {
-    width: 44px;
-    height: 44px;
-    margin: 0 auto;
-  }
-
-  .action-label {
-    font-size: 11px;
-  }
-}
-
-.action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  border: none;
   background: transparent;
+  border: none;
+  border-radius: 8px;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
 }
-.action-btn:hover {
+
+.close-btn:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
-  transform: translateY(-2px);
 }
-.icon-circle {
+
+.share-body {
+  padding: 20px;
+}
+
+.link-section {
+  margin-bottom: 20px;
+}
+
+.link-input-wrap {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.link-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.link-input::selection {
+  background: var(--accent-color);
+  color: white;
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--accent-color);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.copy-btn.copied {
+  background: #10b981;
+}
+
+.social-section {
+  margin-top: 4px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.social-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.social-btn {
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
   background: var(--bg-secondary);
   border: 1px solid var(--border-light);
-  color: var(--text-primary);
-  transition: all 0.2s ease;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.action-btn:hover .icon-circle {
+
+.social-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--text-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-heavy);
+  transform: translateY(-2px);
 }
-.action-label {
-  font-weight: 500;
+
+.social-btn:active {
+  transform: translateY(0);
 }
-.icon {
-  display: none; /* Deprecated */
+
+/* X (Twitter) */
+.social-btn:nth-child(1):hover {
+  background: #000;
+  color: white;
+  border-color: #000;
+}
+
+/* LinkedIn */
+.social-btn:nth-child(2):hover {
+  background: #0077b5;
+  color: white;
+  border-color: #0077b5;
+}
+
+/* Reddit */
+.social-btn:nth-child(3):hover {
+  background: #ff4500;
+  color: white;
+  border-color: #ff4500;
+}
+
+/* WeChat */
+.social-btn:nth-child(4):hover {
+  background: #07c160;
+  color: white;
+  border-color: #07c160;
 }
 
 @keyframes fadeIn {
@@ -667,6 +396,45 @@ onMounted(async () => {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+  .share-dialog {
+    width: calc(100vw - 32px);
+    margin: 16px;
+  }
+
+  .share-body {
+    padding: 16px;
+  }
+
+  .link-input-wrap {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .copy-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .social-buttons {
+    justify-content: center;
   }
 }
 </style>

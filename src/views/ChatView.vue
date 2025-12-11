@@ -540,7 +540,7 @@
               v-if="message.role === 'assistant'"
               class="toolbar-icon"
               @click.stop="shareMessage(message)"
-              title="分享"
+              title="分享消息"
             >
               <svg
                 width="16"
@@ -552,11 +552,9 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
               </svg>
             </button>
           </div>
@@ -1037,6 +1035,7 @@
       v-if="showShareDialog"
       :title="shareDialogTitle"
       :share-url="shareDialogUrl"
+      :share-mode="shareMode"
       @close="showShareDialog = false"
     />
 
@@ -1184,6 +1183,7 @@ const pendingPreviewUrl = ref(null);
 const showShareDialog = ref(false);
 const shareDialogUrl = ref("");
 const shareDialogTitle = ref("分享对话");
+const shareMode = ref("session"); // 'session' | 'message'
 
 // 语音模式状态
 const showVoiceMode = ref(false);
@@ -2198,23 +2198,41 @@ const regenerateMessage = async (message) => {
 const shareMessage = async (message) => {
   if (!message?.content) return;
 
-  // 使用当前会话的分享链接
   const sessionId = route.params.sessionId;
   if (sessionId) {
-    shareDialogTitle.value = sessionInfo.value?.title || "分享对话";
+    // 单条消息分享：带上消息ID参数
+    const messageId = message.id || message.message_id;
+    shareMode.value = "message";
+    shareDialogTitle.value = "分享消息";
     shareDialogUrl.value =
       typeof window !== "undefined" && window.location
-        ? `${window.location.origin}/share/${sessionId}`
-        : `/share/${sessionId}`;
+        ? `${window.location.origin}/share/${sessionId}${
+            messageId ? `?msg=${messageId}` : ""
+          }`
+        : `/share/${sessionId}${messageId ? `?msg=${messageId}` : ""}`;
     showShareDialog.value = true;
   } else {
-    // 如果没有会话ID（例如新对话未保存），回退到复制文本
+    // 如果没有会话ID，直接复制文本
     try {
       await navigator.clipboard.writeText(message.content);
       alert("内容已复制到剪贴板");
     } catch (e) {
       console.error("Copy failed:", e);
     }
+  }
+};
+
+// 分享整个会话
+const shareSession = () => {
+  const sessionId = route.params.sessionId;
+  if (sessionId) {
+    shareMode.value = "session";
+    shareDialogTitle.value = sessionInfo.value?.title || "分享对话";
+    shareDialogUrl.value =
+      typeof window !== "undefined" && window.location
+        ? `${window.location.origin}/share/${sessionId}`
+        : `/share/${sessionId}`;
+    showShareDialog.value = true;
   }
 };
 
