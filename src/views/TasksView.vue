@@ -196,68 +196,71 @@ onUnmounted(() => {
 
 <style scoped>
 .tasks-view {
-  padding: 20px;
+  padding: var(--space-xl);
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .card {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px var(--shadow-light);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.card h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs) 0;
 }
 
 .tasks-header {
   display: flex;
-  gap: 10px;
-  margin: 15px 0;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
 }
 
-.tasks-header button,
 .tasks-header select {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
   cursor: pointer;
-}
-
-.tasks-header button {
-  background: #667eea;
-  color: white;
 }
 
 .tasks-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
+  gap: var(--space-md);
 }
 
 .task-item {
-  padding: 16px;
-  background: var(--input-bg);
-  border-radius: 10px;
+  padding: var(--space-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  transition: all 0.2s;
+  gap: var(--space-lg);
+  transition: all var(--duration-fast) var(--ease-out);
   cursor: pointer;
   border: 1px solid transparent;
 }
 
 .task-item:hover {
-  background: var(--tab-hover);
-  border-color: var(--primary-color);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-hover);
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .task-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   flex: 1;
   min-width: 0;
 }
@@ -265,6 +268,7 @@ onUnmounted(() => {
 .task-title {
   font-weight: 500;
   font-size: 15px;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -273,65 +277,74 @@ onUnmounted(() => {
 .task-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 
 .task-time {
   font-size: 12px;
-  color: #888;
+  color: var(--text-tertiary);
 }
 
 .status-badge {
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-full);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .status-badge.pending {
-  background: #e2e8f0;
-  color: #4a5568;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 .status-badge.in_progress {
-  background: #ebf8ff;
-  color: #3182ce;
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--info);
 }
 .status-badge.waiting {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
 }
 .status-badge.completed {
-  background: #c6f6d5;
-  color: #2f855a;
+  background: rgba(16, 163, 127, 0.1);
+  color: var(--success);
 }
 .status-badge.failed {
-  background: #fed7d7;
-  color: #c53030;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
 }
 .status-badge.cancelled {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
 }
 
 .delete-btn {
   padding: 8px 12px;
   background: transparent;
-  border: 1px solid #fee;
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 16px;
-  transition: all 0.2s;
+  transition: all var(--duration-fast);
   flex-shrink: 0;
+  opacity: 0;
+}
+
+.task-item:hover .delete-btn {
+  opacity: 1;
 }
 
 .delete-btn:hover {
-  background: #fee;
-  border-color: #fcc;
-  transform: scale(1.1);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.loading, .empty {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--text-secondary);
 }
 
 /* 删除确认对话框 */
@@ -350,64 +363,54 @@ onUnmounted(() => {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .confirm-dialog {
   background: var(--bg-primary);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
   animation: slideUp 0.2s ease-out;
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .confirm-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--space-md) 0;
 }
 
 .confirm-message {
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.5;
-  margin: 0 0 24px 0;
+  margin: 0 0 var(--space-xl) 0;
 }
 
 .confirm-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   justify-content: flex-end;
 }
 
 .btn-cancel,
 .btn-delete {
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease-out;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .btn-cancel {
@@ -426,22 +429,20 @@ onUnmounted(() => {
 
 .btn-delete:hover {
   background: #dc2626;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* 移动端响应式 */
 @media (max-width: 768px) {
   .tasks-view {
-    padding: 16px;
+    padding: var(--space-lg);
   }
 
   .card {
-    padding: 16px;
-    border-radius: 10px;
+    padding: var(--space-lg);
   }
 
   .card h3 {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .tasks-header {
@@ -453,14 +454,10 @@ onUnmounted(() => {
   }
 
   .task-item {
-    padding: 12px;
+    padding: var(--space-md);
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .task-content {
-    width: 100%;
+    align-items: stretch;
+    gap: var(--space-md);
   }
 
   .task-title {
@@ -469,27 +466,9 @@ onUnmounted(() => {
     word-break: break-word;
   }
 
-  .task-meta {
-    gap: 8px;
-  }
-
   .delete-btn {
+    opacity: 1;
     align-self: flex-end;
-    padding: 6px 10px;
-    font-size: 14px;
-  }
-
-  .confirm-dialog {
-    margin: 16px;
-    padding: 20px;
-  }
-
-  .confirm-title {
-    font-size: 16px;
-  }
-
-  .confirm-message {
-    font-size: 13px;
   }
 
   .confirm-actions {
