@@ -197,8 +197,14 @@ onUnmounted(() => {
 <style scoped>
 .tasks-view {
   padding: var(--space-xl);
-  max-width: 1200px;
-  margin: 0 auto;
+  padding-bottom: var(--space-lg);
+}
+
+@media (max-width: 768px) {
+  .tasks-view {
+    padding: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .card {
@@ -445,10 +451,6 @@ onUnmounted(() => {
 
 /* 移动端响应式 */
 @media (max-width: 768px) {
-  .tasks-view {
-    padding: var(--space-lg);
-  }
-
   .card {
     padding: var(--space-lg);
   }

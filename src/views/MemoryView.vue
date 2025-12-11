@@ -477,9 +477,15 @@ onMounted(() => {
 
 <style scoped>
 .memory-view {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: var(--space-xl);
+  padding-bottom: var(--space-lg);
+}
+
+@media (max-width: 768px) {
+  .memory-view {
+    padding: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .page-header {

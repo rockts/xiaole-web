@@ -243,8 +243,14 @@ onMounted(() => {
 <style scoped>
 .documents-view {
   padding: var(--space-xl);
-  max-width: 1200px;
-  margin: 0 auto;
+  padding-bottom: var(--space-lg);
+}
+
+@media (max-width: 768px) {
+  .documents-view {
+    padding: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .header {
@@ -563,12 +569,8 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
-/* 移动端响应式 */
+/* 移动端响应式 - 其他元素 */
 @media (max-width: 768px) {
-  .documents-view {
-    padding: 16px;
-  }
-
   .header {
     margin-bottom: var(--space-lg);
     text-align: left;

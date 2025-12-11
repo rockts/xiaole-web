@@ -208,10 +208,16 @@ onMounted(() => {
 
 <style scoped>
 .behavior-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: var(--space-xl);
+  padding-bottom: var(--space-lg);
   color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .behavior-container {
+    padding: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .page-header {
