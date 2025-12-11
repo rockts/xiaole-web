@@ -1120,7 +1120,7 @@ watch(
     padding-bottom: env(safe-area-inset-bottom);
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 约束内部滚动 */
+    overflow: visible; /* 允许子项（footer）正常定位 */
   }
 
   .sidebar.collapsed {
@@ -1952,16 +1952,15 @@ watch(
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 让内部区域滚动，避免 footer 被卷走 */
+    overflow-y: auto; /* 整体可滚动，footer 不在滚动区域内 */
+    -webkit-overflow-scrolling: touch;
   }
   .sessions-section {
     /* 使用 flex: 1 自适应剩余空间 */
     flex: 1;
     min-height: 0;
     max-height: none; /* 移除固定 max-height，让 flex 控制 */
-    overflow-y: auto; /* 由这里滚动 */
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 96px; /* 预留底部空间给 footer */
+    overflow: hidden; /* 由外层 sidebar-content 处理滚动 */
     display: flex;
     flex-direction: column;
   }
@@ -1999,9 +1998,7 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* sticky 底部，确保可见 */
-    position: sticky;
-    bottom: 0;
+    /* 不随滚动，固定在 flex 底部 */
     flex-shrink: 0 !important;
     flex-grow: 0 !important;
     padding: 12px 8px;
