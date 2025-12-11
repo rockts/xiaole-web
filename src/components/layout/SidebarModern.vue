@@ -1115,10 +1115,8 @@ watch(
     transform: translateX(0);
     box-shadow: var(--shadow-lg);
     z-index: 1000;
-    padding-bottom: 0; /* 移除sidebar的padding，让footer自己处理 */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* 防止整体滚动 */
+    padding-bottom: 0;
+    /* 不用 flex，用 position 布局 */
   }
 
   .sidebar.collapsed {
@@ -1945,13 +1943,12 @@ watch(
 /* 移动端覆盖：让可滚动区域自适应，避免挤压底部用户栏 */
 @media (max-width: 768px) {
   .sidebar-content {
-    /* 确保sidebar-content占满剩余高度（排除footer） */
-    flex: 1 1 auto;
-    min-height: 0; /* 关键：允许收缩 */
-    max-height: calc(100% - 80px); /* 预留 footer 空间 */
+    /* 占满高度，但底部留出 footer 空间 */
+    height: calc(100% - 80px);
+    max-height: calc(100% - 80px);
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 改为 hidden，让 sessions-list 处理滚动 */
+    overflow: hidden;
   }
   .sessions-section {
     /* 使用 flex: 1 自适应剩余空间 */
@@ -1996,8 +1993,11 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* 确保footer始终在底部显示 - 不用 sticky，用 flex-shrink: 0 */
-    flex-shrink: 0;
+    /* 强制固定在底部 */
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     padding: 12px 8px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     background: var(--bg-primary);
