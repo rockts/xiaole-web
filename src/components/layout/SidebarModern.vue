@@ -1116,6 +1116,9 @@ watch(
     box-shadow: var(--shadow-lg);
     z-index: 1000;
     padding-bottom: 0; /* 移除sidebar的padding，让footer自己处理 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 防止整体滚动 */
   }
 
   .sidebar.collapsed {
@@ -1992,9 +1995,7 @@ watch(
     background-clip: padding-box !important;
   }
   .sidebar-footer {
-    /* 确保footer始终在底部显示 */
-    position: sticky;
-    bottom: 0;
+    /* 确保footer始终在底部显示 - 不用 sticky，用 flex-shrink: 0 */
     flex-shrink: 0;
     padding: 12px 8px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
