@@ -1962,24 +1962,29 @@ watch(
   }
   .sessions-list {
     flex: 1;
-    overflow-y: auto !important;
+    overflow-y: scroll !important; /* 强制显示滚动条 */
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
   }
-  /* iOS/移动端滚动条样式 */
+  /* iOS/移动端滚动条样式 - 强制显示 */
   .sessions-list::-webkit-scrollbar {
-    width: 6px;
-    -webkit-appearance: none;
+    width: 8px !important;
+    -webkit-appearance: none !important;
+    display: block !important;
   }
   .sessions-list::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.08);
-    border-radius: 7px;
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-radius: 4px !important;
   }
   .sessions-list::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.45);
-    border-radius: 7px;
-    min-height: 50px;
+    background: rgba(0, 0, 0, 0.25) !important;
+    border-radius: 4px !important;
+    min-height: 40px !important;
+  }
+  .sessions-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.4) !important;
   }
   .sidebar-footer {
     flex: 0 0 auto !important;
