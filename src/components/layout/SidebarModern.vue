@@ -1117,9 +1117,10 @@ watch(
     transform: translateX(0);
     box-shadow: var(--shadow-lg);
     z-index: 1000;
-    padding-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* 约束内部滚动 */
   }
 
   .sidebar.collapsed {
@@ -1951,7 +1952,8 @@ watch(
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto; /* 允许整体滚动，footer 保持在底部 */
+    -webkit-overflow-scrolling: touch;
   }
   .sessions-section {
     /* 使用 flex: 1 自适应剩余空间 */
@@ -2001,7 +2003,7 @@ watch(
     flex-grow: 0 !important;
     margin-top: auto;
     padding: 12px 8px;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     background: var(--bg-primary);
     border-top: 1px solid var(--border-light);
     min-height: 60px;
