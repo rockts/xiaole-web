@@ -20,9 +20,20 @@ export function useWebSocket() {
             return
         }
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${protocol}//${window.location.host}/ws`
+        // 使用 API 地址的 WebSocket 端点
+        const apiBase = import.meta.env.VITE_API_BASE || ''
+        let wsUrl
+        if (apiBase) {
+            // 生产环境：使用 API 服务器地址
+            // https://api.leke.xyz -> wss://api.leke.xyz/ws
+            wsUrl = apiBase.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') + '/ws'
+        } else {
+            // 开发环境：使用当前页面地址
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+            wsUrl = `${protocol}//${window.location.host}/ws`
+        }
 
+        console.log('WebSocket connecting to:', wsUrl)
         ws = new WebSocket(wsUrl)
 
         ws.onopen = () => {
