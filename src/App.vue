@@ -1,13 +1,14 @@
 <template>
   <div class="app-layout" ref="appLayoutRef">
     <SidebarModern v-if="authStore.isAuthenticated" ref="sidebarRef" />
-    <div class="main-content">
+    <div class="main-content" :class="{ 'is-chat-route': isChatRoute }">
       <TopBar
         v-if="authStore.isAuthenticated"
         @toggle-sidebar="handleToggleSidebar"
       />
       <div
         class="content-wrapper"
+        :class="{ 'is-chat-route': isChatRoute }"
         ref="contentWrapperRef"
         @scroll="onContentScroll"
       >
@@ -24,18 +25,41 @@
 import SidebarModern from "@/components/layout/SidebarModern.vue";
 import TopBar from "@/components/layout/TopBar.vue";
 import ReminderNotification from "@/components/common/ReminderNotification.vue";
-import LoadingView from "@/views/LoadingView.vue";
-import { ref, onMounted, watch, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from "vue";
 import { useWebSocket } from "@/composables/useWebSocket";
 import { useAuthStore } from "@/stores/auth";
 import { useRoute } from "vue-router";
 
-// Force rebuild comment
 const authStore = useAuthStore();
 const route = useRoute();
 const sidebarRef = ref(null);
 const appLayoutRef = ref(null);
 const contentWrapperRef = ref(null);
+
+const isChatRoute = computed(() => route.path.startsWith("/chat"));
+
+const updateTopBarCssVar = async () => {
+  await nextTick();
+
+  // 默认：未登录不显示 TopBar，就不要预留空间
+  if (!authStore.isAuthenticated) {
+    document.documentElement.style.setProperty("--app-topbar-h", "0px");
+    return;
+  }
+
+  const root = appLayoutRef.value;
+  const topBarEl = root?.querySelector?.(".top-bar");
+  if (!topBarEl) {
+    document.documentElement.style.setProperty("--app-topbar-h", "0px");
+    return;
+  }
+
+  const h = Math.round(topBarEl.getBoundingClientRect().height);
+  document.documentElement.style.setProperty(
+    "--app-topbar-h",
+    `${Math.max(0, h)}px`
+  );
+};
 
 const handleToggleSidebar = () => {
   if (sidebarRef.value) {
@@ -104,6 +128,15 @@ onMounted(() => {
   if (authStore.isAuthenticated) {
     connect();
   }
+
+  updateTopBarCssVar();
+  window.addEventListener("resize", updateTopBarCssVar, { passive: true });
+  window.visualViewport?.addEventListener?.("resize", updateTopBarCssVar);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", updateTopBarCssVar);
+  window.visualViewport?.removeEventListener?.("resize", updateTopBarCssVar);
 });
 
 watch(
@@ -114,6 +147,15 @@ watch(
     } else {
       disconnect();
     }
+
+    updateTopBarCssVar();
+  }
+);
+
+watch(
+  () => route.fullPath,
+  () => {
+    updateTopBarCssVar();
   }
 );
 </script>
@@ -152,7 +194,12 @@ watch(
   }
   .main-content {
     /* 移动端：TopBar 是 fixed，需要给内容留出顶部空间 */
-    padding-top: 52px;
+    padding-top: var(--app-topbar-h, 52px);
+  }
+
+  /* 聊天页：由内容区自身做 top offset，避免任何覆盖/嵌套滚动副作用 */
+  .main-content.is-chat-route {
+    padding-top: 0;
   }
   .content-wrapper {
     /* 移动端：确保内容填满且可滚动 */
@@ -160,6 +207,16 @@ watch(
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
+  }
+
+  /* 聊天页自身管理滚动，外层不要再滚动（避免嵌套滚动导致顶部遮挡/底部多余空白） */
+  .content-wrapper.is-chat-route {
+    overflow: hidden;
+    position: fixed;
+    top: var(--app-topbar-h, 52px);
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 }
 </style>

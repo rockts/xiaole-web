@@ -1422,7 +1422,8 @@ watch(
         await nextTick();
         requestAnimationFrame(() => {
           if (chatContainer.value) {
-            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+            // 使用统一的滚动函数，确保移动端第一条消息不被遮挡
+            stickToBottomImmediate();
           }
         });
       } catch (error) {
@@ -1506,7 +1507,17 @@ const isNearBottom = () => {
 const stickToBottomImmediate = () => {
   const el = chatContainer.value;
   if (!el) return;
-  el.scrollTop = el.scrollHeight;
+
+  const maxScroll = el.scrollHeight - el.clientHeight;
+
+  // 如果内容不足以滚动，保持在顶部
+  if (maxScroll <= 0) {
+    el.scrollTop = 0;
+    return;
+  }
+
+  // 正常滚动到底部
+  el.scrollTop = maxScroll;
 };
 
 // 在 AI 打字期间，使用 rAF 持续粘底（仅在接近底部时）
@@ -1540,57 +1551,6 @@ watch(
         // 双重保险：确保渲染完成后再次滚动，防止内容撑开导致未到底
         setTimeout(stickToBottomImmediate, 50);
         shouldScrollToBottom.value = !!isTyping.value;
-        // 额外补偿：如果输入框覆盖了底部消息，向上偏移一个输入框高度
-        try {
-          const inputEl = document.querySelector(".input-container");
-          const container = chatContainer.value;
-          if (inputEl && container) {
-            const inputH = inputEl.getBoundingClientRect().height || 0;
-            // 在下一帧再次调整，确保元素渲染完成
-            requestAnimationFrame(() => {
-              const maxScrollTop =
-                container.scrollHeight - container.clientHeight;
-              const desired = Math.max(
-                0,
-                Math.min(
-                  maxScrollTop,
-                  container.scrollHeight - container.clientHeight + inputH + 8
-                )
-              );
-              container.scrollTop = desired;
-
-              // 进一步确保最后消息元素完全可见（避免思考气泡出现在输入框后面）
-              try {
-                const lastMsg = messages.value[messages.value.length - 1];
-                if (lastMsg && lastMsg.id) {
-                  const msgEl = container.querySelector(
-                    `[data-msg-id="${lastMsg.id}"]`
-                  );
-                  if (msgEl) {
-                    const msgRect = msgEl.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    const safeMargin = 180; // 安全边距：确保消息底部距离输入框顶部至少180px
-                    const overlap =
-                      msgRect.bottom -
-                      (containerRect.bottom - inputH - safeMargin);
-                    if (overlap > 0) {
-                      // 向上滚动 overlap，确保消息底部位于输入框上方足够距离处
-                      container.scrollTop += overlap + safeMargin;
-                      console.log(
-                        "🔧 Adjusted scroll to keep last message above input, overlap:",
-                        overlap,
-                        "margin:",
-                        safeMargin
-                      );
-                    }
-                  }
-                }
-              } catch (e) {
-                console.error("Error ensuring last message visibility", e);
-              }
-            });
-          }
-        } catch (e) {}
       }
     });
   },
@@ -5079,16 +5039,20 @@ const feedbackMessage = async (message, type) => {
 
   /* 移动端内容区域的 padding */
   .chat-inner {
-    padding-top: 16px; /* 顶部留出 TopBar 空间 */
-    padding-bottom: 70px; /* 底部留出输入框空间 */
+    padding-top: 16px;
+    padding-bottom: 80px; /* 底部留出输入框空间 */
+  }
+
+  /* 移动端最后一条消息不需要额外 padding（已由 chat-inner 处理） */
+  .message:last-child {
+    padding-bottom: 0;
   }
 }
 
 /* 更小屏幕的额外优化 */
 @media (max-width: 480px) {
   .chat-view {
-    height: 100dvh; /* 适配移动端动态视口高度 */
-    height: calc(var(--app-vh, 100vh)); /* 备用：使用 JS 计算的高度 */
+    height: 100%; /* 跟随 App 内容区高度（已预留 TopBar） */
   }
 
   /* 移动端空状态：欢迎语居中偏下，输入框固定底部 */
@@ -5121,18 +5085,6 @@ const feedbackMessage = async (message, type) => {
     right: 0;
     padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
     background: var(--bg-primary);
-    /* border-top: 1px solid var(--border-light); */
-  }
-
-  .chat-inner {
-    padding: 12px;
-    padding-top: 12px; /* 移动端：TopBar 空间已由 main-content padding-top 处理 */
-    padding-bottom: 70px; /* 底部留出输入框空间 */
-  }
-
-  /* 移动端最后一条消息 - 不需要额外 padding */
-  .message:last-child {
-    padding-bottom: 0;
   }
 
   .user-bubble {
