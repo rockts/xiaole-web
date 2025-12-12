@@ -1,0 +1,30 @@
+{
+    "name": "小乐 AI 管家",
+    "short_name": "小乐 AI",
+    "description": "你的智能 AI 助手，随时为你服务",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#667eea",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/favicon-dark.png",
+            "sizes": "48x48",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/logo-xiaole.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "utilities"
+    ],
+    "lang": "zh-CN",
+    "dir": "ltr"
+}

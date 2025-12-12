@@ -6,6 +6,12 @@
     <!-- 适配浏览器主题颜色，提升地址栏/标签栏一致性 -->
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)">
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <!-- Apple PWA 元标签 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="小乐 AI">
     <!-- Apple Touch Icon 保留为你的 logo（不影响桌面浏览器 favicon 选择） -->
     <link rel="apple-touch-icon" href="/src/assets/logo-xiaole.png" />
     <!-- 默认 favicon（兼容浏览器默认请求，浅色背景用深色图标） -->
@@ -20,6 +26,20 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>小乐 AI 管家 v0.9.1</title>
+    <script>
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('✅ SW registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
     <script>
         // 调试工具: 按 Ctrl+Shift+D 清除认证信息
         document.addEventListener('keydown', (e) => {
