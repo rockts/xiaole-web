@@ -1716,13 +1716,17 @@ async function speakAndResumeMic(text) {
 
 const renderMarkdown = (content) => {
   if (!content) return "";
-  
-  // 统一 LaTeX 定界符：\(...\) -> $...$，\[...\] -> $$...$$
-  let text = content;
+
+  // 清理所有不可见控制字符（保留常用换行、制表符）
+  let text = content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+
   // 统一 LaTeX 定界符，并确保公式前后有空格（避免和中文粘连导致无法识别）
-  text = text.replace(/\\\(\s*(.+?)\s*\\\)/g, (_, f) => ' $' + f.trim() + '$ ');
-  text = text.replace(/\\\[\s*(.+?)\s*\\\]/gs, (_, f) => ' $$' + f.trim() + '$$ ');
-  
+  text = text.replace(/\\\(\s*(.+?)\s*\\\)/g, (_, f) => " $" + f.trim() + "$ ");
+  text = text.replace(
+    /\\\[\s*(.+?)\s*\\\]/gs,
+    (_, f) => " $$" + f.trim() + "$$ "
+  );
+
   const result = marked.parse(text);
   return result;
 };
