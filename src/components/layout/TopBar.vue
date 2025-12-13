@@ -96,7 +96,9 @@
           stroke="currentColor"
           stroke-width="2"
         >
-          <path d="M12 5v14M5 12h14"></path>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          <line x1="12" y1="8" x2="12" y2="14"></line>
+          <line x1="9" y1="11" x2="15" y2="11"></line>
         </svg>
       </button>
 
@@ -662,7 +664,6 @@ onBeforeUnmount(() => {
   height: 52px;
   padding: 0 var(--space-lg);
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -765,6 +766,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .top-bar-right {
+    gap: 4px;
+  }
 }
 
 .more-container {
