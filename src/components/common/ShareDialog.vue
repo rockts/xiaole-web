@@ -5,19 +5,7 @@
         <!-- 头部：标题 + 关闭按钮 -->
         <div class="share-header">
           <h3 class="share-title">{{ title || "分享对话" }}</h3>
-          <button class="close-btn" @click="emit('close')" aria-label="关闭">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#ffffff"
-              stroke-width="2.5"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <button class="close-btn" @click="emit('close')" aria-label="关闭">×</button>
         </div>
 
         <!-- 预览卡片 -->
@@ -314,16 +302,19 @@ const shareToReddit = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 8px;
   color: #fff;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* 预览卡片区域 */
