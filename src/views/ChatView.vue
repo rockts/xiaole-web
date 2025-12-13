@@ -1417,6 +1417,18 @@ const renderer = {
       tit || ""
     }" target="_blank" rel="noopener noreferrer">${txt}</a>`;
   },
+  table(header, body) {
+    // 兼容 marked 不同版本的参数传递方式
+    let thead = header;
+    let tbody = body;
+
+    if (typeof header === "object" && header !== null) {
+      thead = header.header;
+      tbody = header.body;
+    }
+
+    return `<div class="table-wrapper"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  },
 };
 
 marked.use({ renderer });
@@ -4462,15 +4474,43 @@ const feedbackMessage = async (message, type) => {
   background: var(--bg-secondary);
   border-radius: 6px;
 }
+
+/* 表格容器 - 支持水平滚动 */
+.md-content :deep(.table-wrapper) {
+  overflow-x: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+
 .md-content :deep(table) {
   width: 100%;
+  min-width: 400px;
   border-collapse: collapse;
-  margin: 12px 0;
+  font-size: 14px;
 }
-.md-content :deep(th),
+
+.md-content :deep(th) {
+  border: 1px solid var(--border-light);
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .md-content :deep(td) {
   border: 1px solid var(--border-light);
-  padding: 8px 10px;
+  padding: 10px 14px;
+  vertical-align: top;
+}
+
+.md-content :deep(tr:nth-child(even)) {
+  background: var(--bg-secondary);
+}
+
+.md-content :deep(tr:hover) {
+  background: var(--bg-hover);
 }
 .md-content :deep(img) {
   max-width: 100%;
