@@ -702,7 +702,7 @@ onBeforeUnmount(() => {
   }
   
   .top-bar-center {
-    padding: 0 90px;
+    display: none;
   }
 }
 
