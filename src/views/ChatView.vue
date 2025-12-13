@@ -2272,13 +2272,21 @@ const regenerateMessage = async (message) => {
 
     // 1. 立即从前端移除 (防止重复点击)
     const userMsgIndex = messages.value.findIndex((m) => m.id === userMsgId);
+    const aiMsgIndex = messages.value.findIndex((m) => m.id === aiMsgId);
 
-    if (userMsgIndex !== -1) {
-      // 删除从用户消息开始的所有后续消息
-      messages.value.splice(userMsgIndex);
-    } else {
-      // 如果找不到用户消息，至少删除当前的 AI 消息
-      chatStore.deleteMessage(message.id);
+    if (userMsgIndex !== -1 && aiMsgIndex !== -1) {
+      // 只删除这一对用户消息和 AI 回复，不影响后续对话
+      // 先删除索引较大的（AI消息），再删除用户消息
+      if (aiMsgIndex > userMsgIndex) {
+        messages.value.splice(aiMsgIndex, 1);
+        messages.value.splice(userMsgIndex, 1);
+      } else {
+        messages.value.splice(userMsgIndex, 1);
+        messages.value.splice(aiMsgIndex, 1);
+      }
+    } else if (aiMsgIndex !== -1) {
+      // 如果找不到用户消息，只删除当前的 AI 消息
+      messages.value.splice(aiMsgIndex, 1);
     }
 
     // 2. 立即插入新消息
