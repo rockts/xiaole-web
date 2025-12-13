@@ -1728,6 +1728,21 @@ const renderMarkdown = (content) => {
   // 只要检测到任何错误格式，就进行修复
   const needsRepair = hasBrokenLatex;
 
+  // 如果检测到被误拆的数学符号，优先走“纯文本”兜底，避免 KaTeX 误解析
+  if (hasBrokenLatex) {
+    // 1) 转义所有 $，避免进入行内公式模式
+    preprocessed = preprocessed.replace(/\$/g, "\\$");
+    // 2) 去掉常见的 LaTeX 命令反斜杠，保留可读文本
+    preprocessed = preprocessed.replace(
+      /\\(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)/gi,
+      "$1"
+    );
+    // 3) 其他反斜杠也转义，避免被当作转义符
+    preprocessed = preprocessed.replace(/\\/g, "\\\\");
+
+    return marked.parse(preprocessed);
+  }
+
   if (needsRepair) {
     // ===== 第零步：修复被错误拆分的 LaTeX 命令 =====
     // 修复严重破坏的 LaTeX 命令，包括多次拆分的情况
