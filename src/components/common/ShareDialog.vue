@@ -5,7 +5,9 @@
         <!-- 头部：标题 + 关闭按钮 -->
         <div class="share-header">
           <h3 class="share-title">{{ title || "分享对话" }}</h3>
-          <button class="close-btn" @click="emit('close')" aria-label="关闭">×</button>
+          <button class="close-btn" @click="emit('close')" aria-label="关闭">
+            ×
+          </button>
         </div>
 
         <!-- 预览卡片 -->
@@ -269,7 +271,7 @@ const shareToReddit = () => {
 }
 
 .share-dialog {
-  background: #1a1a1a;
+  background: var(--bg-primary);
   border-radius: 16px;
   box-shadow: 0 16px 70px rgba(0, 0, 0, 0.4);
   width: min(520px, 92vw);
@@ -286,13 +288,13 @@ const shareToReddit = () => {
   justify-content: space-between;
   padding: 20px 24px;
   flex-shrink: 0;
-  background: #2a2a2a;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .share-title {
   font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -302,19 +304,20 @@ const shareToReddit = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  color: #fff;
-  font-size: 24px;
-  font-weight: 300;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 400;
   line-height: 1;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-hover);
+  border-color: var(--border-medium);
 }
 
 /* 预览卡片区域 */
@@ -325,7 +328,7 @@ const shareToReddit = () => {
 
 .preview-card {
   position: relative;
-  background: #212121;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
   min-height: 180px;
@@ -346,24 +349,24 @@ const shareToReddit = () => {
 }
 
 .loading-text {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
 .preview-message {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
 }
 
 .preview-message.user {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   padding-left: 12px;
-  border-left: 2px solid rgba(255, 255, 255, 0.2);
+  border-left: 2px solid var(--border-light);
 }
 
 .preview-message.assistant {
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--text-primary);
 }
 
 .message-image {
@@ -387,7 +390,7 @@ const shareToReddit = () => {
   left: 0;
   right: 0;
   height: 80px;
-  background: linear-gradient(to bottom, transparent, #212121 70%);
+  background: linear-gradient(to bottom, transparent, var(--bg-secondary) 70%);
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
@@ -397,7 +400,7 @@ const shareToReddit = () => {
 .preview-watermark {
   font-size: 14px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-tertiary);
   letter-spacing: 0.5px;
 }
 
