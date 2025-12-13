@@ -42,51 +42,8 @@
     </div>
 
     <div class="top-bar-right">
-      <!-- 桌面端：保留主题切换和提醒；移动端：隐藏这些重复/次要功能 -->
-      <button
-        class="icon-btn"
-        @click="toggleTheme"
-        aria-label="切换主题"
-        v-if="!isMobile"
-      >
-        <svg
-          v-if="isDark"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <circle cx="12" cy="12" r="5" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="23" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="1" y1="12" x2="3" y2="12" />
-          <line x1="21" y1="12" x2="23" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </svg>
-        <svg
-          v-else
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      </button>
-
       <!-- 新对话按钮 -->
-      <button
-        class="icon-btn"
-        @click="handleNewChat"
-        aria-label="新对话"
-      >
+      <button class="icon-btn" @click="handleNewChat" aria-label="新对话">
         <svg
           width="20"
           height="20"
@@ -383,7 +340,6 @@ const handleClickOutside = (event) => {
   }
 };
 
-const isDark = ref(false);
 const isEditingTitle = ref(false);
 const editingTitle = ref("");
 const titleInput = ref(null);
@@ -579,15 +535,6 @@ const toggleSidebar = () => {
   emit("toggle-sidebar");
 };
 
-const toggleTheme = () => {
-  isDark.value = !isDark.value;
-  document.documentElement.setAttribute(
-    "data-theme",
-    isDark.value ? "dark" : "light"
-  );
-  localStorage.setItem("theme", isDark.value ? "dark" : "light");
-};
-
 const handleOutsideClick = (e) => {
   if (!e.target.closest(".reminder-container")) {
     showReminders.value = false;
@@ -608,9 +555,20 @@ onMounted(() => {
   };
   window.addEventListener("resize", onResize);
   window.__topbar_onResize = onResize;
+  
+  // 主题跟随系统设置
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const savedTheme = localStorage.getItem("theme");
-  isDark.value = savedTheme === "dark";
-  document.documentElement.setAttribute("data-theme", savedTheme || "light");
+  const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute("data-theme", theme);
+  
+  // 监听系统主题变化
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem('theme')) {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+  });
+  
   document.addEventListener("click", handleOutsideClick);
 
   // Reminders init
