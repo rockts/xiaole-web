@@ -1383,16 +1383,6 @@ const selectRandomGreeting = () => {
 
 const currentGreeting = ref(selectRandomGreeting());
 
-// 配置 marked 使用 KaTeX 数学公式
-marked.use(
-  markedKatex({
-    throwOnError: false,
-    output: "html",
-    trust: true, // 允许更多命令
-    strict: false, // 宽松模式
-  })
-);
-
 // 配置 marked 使用代码高亮
 const renderer = {
   code(code, lang) {
@@ -1439,6 +1429,18 @@ marked.setOptions({
   sanitize: false, // 关键：不对 HTML 进行转义
   headerIds: false,
 });
+
+// 重要：KaTeX 配置必须在最后，否则会被覆盖
+marked.use(
+  markedKatex({
+    throwOnError: false,
+    output: "html",
+    delimiters: [
+      { left: "$$", right: "$$", display: true },
+      { left: "$", right: "$", display: false },
+    ],
+  })
+);
 
 const sessionId = computed(() => route.params.sessionId);
 
@@ -1714,303 +1716,16 @@ async function speakAndResumeMic(text) {
 
 const renderMarkdown = (content) => {
   if (!content) return "";
-
-  let preprocessed = content;
-
-  // ===== 预检测：判断是否需要修复 =====
-  // 检测错误的 LaTeX 格式：被拆分的命令，如 \alph$a, $\bet$a, \alpha$, $\beta 等
-  // 也检测多次拆分的情况，如 \alp$h$a, \be$t$a, \gam$m$a
-  const hasBrokenLatex =
-    /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]|\\[a-zA-Z]+\$(?!\$)|(?<!\$)\$\\[a-zA-Z]+(?!\$)|[a-z]\$(?=[，。、\s])|(?<!\$)\$[a-z](?!\$)|\\[a-zA-Z]+\$[a-z]\$[a-z]|\\\$|\\\\[a-zA-Z]/.test(
-      content
-    );
-
-  // 只要检测到任何错误格式，就进行修复
-  const needsRepair = hasBrokenLatex;
-
-  // 如果检测到被误拆的数学符号，优先走“纯文本”兜底，避免 KaTeX 误解析
-  if (hasBrokenLatex) {
-    // 1) 转义所有 $，避免进入行内公式模式
-    preprocessed = preprocessed.replace(/\$/g, "\\$");
-    // 2) 去掉常见的 LaTeX 命令反斜杠，保留可读文本
-    preprocessed = preprocessed.replace(
-      /\\(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)/gi,
-      "$1"
-    );
-    // 3) 其他反斜杠也转义，避免被当作转义符
-    preprocessed = preprocessed.replace(/\\/g, "\\\\");
-
-    return marked.parse(preprocessed);
-  }
-
-  if (needsRepair) {
-    // ===== 第零步：修复被错误拆分的 LaTeX 命令 =====
-    // 修复严重破坏的 LaTeX 命令，包括多次拆分的情况
-    // 例如: \alp$h$a -> $\alpha$, \be$t$a -> $\beta$, \gam$m$a -> $\gamma$
-
-    // 定义希腊字母及其所有可能的拆分模式
-    const greekLetterPatterns = [
-      // alpha 的各种拆分
-      { pattern: /\$?\\alp\$h\$a\$?/g, replacement: "$\\alpha$" },
-      { pattern: /\$?\\alph\$a\$?/g, replacement: "$\\alpha$" },
-      { pattern: /\$?\\al\$pha\$?/g, replacement: "$\\alpha$" },
-      { pattern: /\$?\\a\$lpha\$?/g, replacement: "$\\alpha$" },
-      { pattern: /\\alpha\$(?!\$)/g, replacement: "$\\alpha$" },
-      { pattern: /(?<!\$)\$\\alpha(?!\$)/g, replacement: "$\\alpha$" },
-
-      // beta 的各种拆分
-      { pattern: /\$?\\be\$t\$a\$?/g, replacement: "$\\beta$" },
-      { pattern: /\$?\\bet\$a\$?/g, replacement: "$\\beta$" },
-      { pattern: /\$?\\b\$eta\$?/g, replacement: "$\\beta$" },
-      { pattern: /\\beta\$(?!\$)/g, replacement: "$\\beta$" },
-      { pattern: /(?<!\$)\$\\beta(?!\$)/g, replacement: "$\\beta$" },
-
-      // gamma 的各种拆分
-      { pattern: /\$?\\gam\$m\$a\$?/g, replacement: "$\\gamma$" },
-      { pattern: /\$?\\gamm\$a\$?/g, replacement: "$\\gamma$" },
-      { pattern: /\$?\\ga\$mma\$?/g, replacement: "$\\gamma$" },
-      { pattern: /\$?\\g\$amma\$?/g, replacement: "$\\gamma$" },
-      { pattern: /\\gamma\$(?!\$)/g, replacement: "$\\gamma$" },
-      { pattern: /(?<!\$)\$\\gamma(?!\$)/g, replacement: "$\\gamma$" },
-
-      // delta 的各种拆分
-      { pattern: /\$?\\del\$t\$a\$?/g, replacement: "$\\delta$" },
-      { pattern: /\$?\\delt\$a\$?/g, replacement: "$\\delta$" },
-      { pattern: /\$?\\de\$lta\$?/g, replacement: "$\\delta$" },
-      { pattern: /\\delta\$(?!\$)/g, replacement: "$\\delta$" },
-      { pattern: /(?<!\$)\$\\delta(?!\$)/g, replacement: "$\\delta$" },
-
-      // epsilon 的各种拆分
-      { pattern: /\$?\\epsi\$l\$on\$?/g, replacement: "$\\epsilon$" },
-      { pattern: /\$?\\epsil\$on\$?/g, replacement: "$\\epsilon$" },
-      { pattern: /\$?\\epsilon\$(?!\$)/g, replacement: "$\\epsilon$" },
-
-      // theta 的各种拆分
-      { pattern: /\$?\\the\$t\$a\$?/g, replacement: "$\\theta$" },
-      { pattern: /\$?\\thet\$a\$?/g, replacement: "$\\theta$" },
-      { pattern: /\$?\\th\$eta\$?/g, replacement: "$\\theta$" },
-      { pattern: /\\theta\$(?!\$)/g, replacement: "$\\theta$" },
-      { pattern: /(?<!\$)\$\\theta(?!\$)/g, replacement: "$\\theta$" },
-
-      // lambda 的各种拆分
-      { pattern: /\$?\\lam\$b\$da\$?/g, replacement: "$\\lambda$" },
-      { pattern: /\$?\\lamb\$da\$?/g, replacement: "$\\lambda$" },
-      { pattern: /\$?\\lambd\$a\$?/g, replacement: "$\\lambda$" },
-      { pattern: /\\lambda\$(?!\$)/g, replacement: "$\\lambda$" },
-      { pattern: /(?<!\$)\$\\lambda(?!\$)/g, replacement: "$\\lambda$" },
-
-      // sigma 的各种拆分
-      { pattern: /\$?\\sig\$m\$a\$?/g, replacement: "$\\sigma$" },
-      { pattern: /\$?\\sigm\$a\$?/g, replacement: "$\\sigma$" },
-      { pattern: /\$?\\si\$gma\$?/g, replacement: "$\\sigma$" },
-      { pattern: /\\sigma\$(?!\$)/g, replacement: "$\\sigma$" },
-      { pattern: /(?<!\$)\$\\sigma(?!\$)/g, replacement: "$\\sigma$" },
-
-      // omega 的各种拆分
-      { pattern: /\$?\\ome\$g\$a\$?/g, replacement: "$\\omega$" },
-      { pattern: /\$?\\omeg\$a\$?/g, replacement: "$\\omega$" },
-      { pattern: /\$?\\om\$ega\$?/g, replacement: "$\\omega$" },
-      { pattern: /\\omega\$(?!\$)/g, replacement: "$\\omega$" },
-      { pattern: /(?<!\$)\$\\omega(?!\$)/g, replacement: "$\\omega$" },
-
-      // pi, mu, nu, xi 等短希腊字母
-      { pattern: /\$?\\p\$i\$?/g, replacement: "$\\pi$" },
-      { pattern: /\\pi\$(?!\$)/g, replacement: "$\\pi$" },
-      { pattern: /(?<!\$)\$\\pi(?!\$)/g, replacement: "$\\pi$" },
-      { pattern: /\$?\\m\$u\$?/g, replacement: "$\\mu$" },
-      { pattern: /\\mu\$(?!\$)/g, replacement: "$\\mu$" },
-      { pattern: /(?<!\$)\$\\mu(?!\$)/g, replacement: "$\\mu$" },
-      { pattern: /\$?\\n\$u\$?/g, replacement: "$\\nu$" },
-      { pattern: /\\nu\$(?!\$)/g, replacement: "$\\nu$" },
-      { pattern: /(?<!\$)\$\\nu(?!\$)/g, replacement: "$\\nu$" },
-      { pattern: /\$?\\x\$i\$?/g, replacement: "$\\xi$" },
-      { pattern: /\\xi\$(?!\$)/g, replacement: "$\\xi$" },
-      { pattern: /(?<!\$)\$\\xi(?!\$)/g, replacement: "$\\xi$" },
-
-      // phi, psi, chi, eta, zeta, rho, tau, upsilon, iota, kappa
-      { pattern: /\$?\\ph\$i\$?/g, replacement: "$\\phi$" },
-      { pattern: /\\phi\$(?!\$)/g, replacement: "$\\phi$" },
-      { pattern: /\$?\\ps\$i\$?/g, replacement: "$\\psi$" },
-      { pattern: /\\psi\$(?!\$)/g, replacement: "$\\psi$" },
-      { pattern: /\$?\\ch\$i\$?/g, replacement: "$\\chi$" },
-      { pattern: /\\chi\$(?!\$)/g, replacement: "$\\chi$" },
-      { pattern: /\$?\\et\$a\$?/g, replacement: "$\\eta$" },
-      { pattern: /\\eta\$(?!\$)/g, replacement: "$\\eta$" },
-      { pattern: /\$?\\zet\$a\$?/g, replacement: "$\\zeta$" },
-      { pattern: /\\zeta\$(?!\$)/g, replacement: "$\\zeta$" },
-      { pattern: /\$?\\rh\$o\$?/g, replacement: "$\\rho$" },
-      { pattern: /\\rho\$(?!\$)/g, replacement: "$\\rho$" },
-      { pattern: /\$?\\ta\$u\$?/g, replacement: "$\\tau$" },
-      { pattern: /\\tau\$(?!\$)/g, replacement: "$\\tau$" },
-      { pattern: /\$?\\iota\$(?!\$)/g, replacement: "$\\iota$" },
-      { pattern: /\$?\\kappa\$(?!\$)/g, replacement: "$\\kappa$" },
-      { pattern: /\$?\\upsilon\$(?!\$)/g, replacement: "$\\upsilon$" },
-    ];
-
-    // 应用所有修复模式
-    greekLetterPatterns.forEach(({ pattern, replacement }) => {
-      preprocessed = preprocessed.replace(pattern, replacement);
-    });
-
-    // 修复 $$a$ → $a$（多余的 $）
-    preprocessed = preprocessed.replace(/\$\$([a-z])\$/g, "$$$1$$");
-
-    // 清理多余的连续 $ 符号
-    preprocessed = preprocessed.replace(/\$\$\$/g, "$$");
-  }
-
-  // ===== 第一步：标准化 LaTeX 分隔符（始终执行）=====
-  // 将 \[ \] 转换为 $$ $$
-  preprocessed = preprocessed.replace(
-    /\\\[([\s\S]*?)\\\]/g,
-    (_, match) => `\n$$\n${match.trim()}\n$$\n`
-  );
-  // 将 \( \) 转换为 $ $
-  preprocessed = preprocessed.replace(/\\\(([\s\S]*?)\\\)/g, (_, match) => {
-    const trimmed = match.trim();
-    return `$${trimmed}$`;
-  });
-
-  // ===== 第二步：条件性修复（只有在需要时才执行）=====
-  if (needsRepair) {
-    // 2.1 修复不完整的希腊字母命令（缺少结尾字母）
-    // 修复类似 \alph、\bet、\gamm 等不完整的命令
-    preprocessed = preprocessed.replace(/\\alph(?!a|ha)/g, "\\alpha");
-    preprocessed = preprocessed.replace(/\\bet(?!a|ta)/g, "\\beta");
-    preprocessed = preprocessed.replace(/\\gamm(?!a|ma)/g, "\\gamma");
-    preprocessed = preprocessed.replace(/\\delt(?!a|ta)/g, "\\delta");
-    preprocessed = preprocessed.replace(/\\epsi(?!l|lo|lon)/g, "\\epsilon");
-    preprocessed = preprocessed.replace(/\\thet(?!a|ha)/g, "\\theta");
-    preprocessed = preprocessed.replace(/\\lamb(?!d|da)/g, "\\lambda");
-    preprocessed = preprocessed.replace(/\\sigm(?!a|ma)/g, "\\sigma");
-
-    // 2.2 修复变量名格式问题（更全面的处理）
-    // 修复 "a $" → "$a$"（变量名后跟空格和$，然后是标点或换行）
-    preprocessed = preprocessed.replace(
-      /([a-z])\s+\$\s*([，。、；：！？\s\n]|$)/g,
-      "$$$1$$$2"
-    );
-    // 修复 "a$" → "$a$"（变量名后直接跟$，然后是标点、空格或换行）
-    preprocessed = preprocessed.replace(
-      /([a-z])\$(?=[，。、；：！？\s\n]|$)/g,
-      "$$$1$$"
-    );
-    // 修复 "a $" 在数学上下文中的情况（前面有数学符号或公式）
-    preprocessed = preprocessed.replace(
-      /(\$[^$]+\$)\s+([a-z])\s+\$/g,
-      "$1 $$$2$$"
-    );
-
-    // 2.3 修复更多边界情况
-    preprocessed = preprocessed.replace(
-      /(\$[^$]+\$)\s+([a-z])\s*,\s*([a-z])\s*,\s*([a-z])(?=[，。、；：！？\s\n]|$)/g,
-      "$1 $$$2$, $$$3$, $$$4$$"
-    );
-
-    // 2.4 修复空格和$的各种组合
-    preprocessed = preprocessed.replace(
-      /([a-z])\s+\$\s+([a-z])(?=[，。、；：！？\s\n]|$)/g,
-      "$$$1$$ $$$2$$"
-    );
-
-    // 2.5 修复数字变量（如 "x1", "x2" 等）
-    preprocessed = preprocessed.replace(
-      /([a-z])(\d+)\s+\$(?=[，。、；：！？\s\n]|$)/g,
-      "$$$1_{$2}$$"
-    );
-  }
-
-  // ===== 第三步：修复不完整的 $ 包裹（条件执行）=====
-  if (needsRepair) {
-    const mathCommands =
-      "alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Alpha|Beta|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega|infty|partial|nabla|sum|prod|int|sqrt|frac|vec|hat|bar|dot|tilde|pm|times|div|cdot|leq|geq|neq|approx|equiv|forall|exists|in|subset|cup|cap|rightarrow|leftarrow|Rightarrow|Leftarrow";
-
-    // 3.1 修复 \alpha$ 缺少开头 $
-    preprocessed = preprocessed.replace(
-      new RegExp(
-        `(?<!\\$)(\\\\(?:${mathCommands})(?:_\\{?[^}\\s]*\\}?)?)\\$`,
-        "g"
-      ),
-      "$$$1$$"
-    );
-
-    // 3.2 修复 $\alpha 缺少结尾 $ (后跟中文、标点、空格)
-    preprocessed = preprocessed.replace(
-      new RegExp(
-        `\\$(\\\\(?:${mathCommands})(?:_\\{?[^}\\s]*\\}?)?)(?=[\\u4e00-\\u9fa5，。、；：！？\\s\\n]|$)`,
-        "g"
-      ),
-      "$$$1$$"
-    );
-
-    // 3.3 修复独立的希腊字母命令（没有任何 $ 包裹）
-    preprocessed = preprocessed.replace(
-      new RegExp(
-        `(?<!\\$|\\\\)(\\\\(?:${mathCommands}))(?![a-zA-Z])(?!\\$)`,
-        "g"
-      ),
-      "$$$1$$"
-    );
-
-    // 3.4 修复 $a、$b 和 a$、b$ 等错误格式
-    preprocessed = preprocessed.replace(
-      /\$([a-zA-Z])、\$([a-zA-Z])/g,
-      "$$$1$、$$$2$$"
-    );
-    preprocessed = preprocessed.replace(
-      /\$([a-zA-Z])和\$([a-zA-Z])/g,
-      "$$$1$和$$$2$$"
-    );
-    preprocessed = preprocessed.replace(
-      /(?<!\$)\$([a-zA-Z])(?!\$)(?=[\u4e00-\u9fa5，。、；：])/g,
-      "$$$1$$"
-    );
-    preprocessed = preprocessed.replace(/(?<!\$)([a-zA-Z])\$(?!\$)/g, "$$$1$$");
-
-    // 3.5 修复 a$、$b 格式
-    preprocessed = preprocessed.replace(
-      /([a-zA-Z])\$、\$([a-zA-Z])/g,
-      "$$$1$、$$$2$$"
-    );
-
-    // ===== 第四步：处理块级公式 =====
-    preprocessed = preprocessed.replace(
-      /(?<!\$)\n\\begin\{([a-z]+)\}([\s\S]*?)\\end\{\1\}(?!\$)/g,
-      "\n$$\n\\begin{$1}$2\\end{$1}\n$$\n"
-    );
-
-    // ===== 第五步：处理独立的 LaTeX 命令块 =====
-    preprocessed = preprocessed.replace(
-      /(^|\n)(\s*\\(oiint|iint|int|frac|sum|prod|lim|begin|mathbf|mathcal|partial)[\s\S]+?)(\n|$)/g,
-      (match, p1, p2, p3, p4) => {
-        if (p2.includes("$")) return match;
-        return `${p1}$$\n${p2.trim()}\n$$${p4}`;
-      }
-    );
-
-    // ===== 第六步：最终清理 =====
-    // 修复连续的 $（如 $$$ → $$）
-    preprocessed = preprocessed.replace(/\$\$\$\$/g, "$$");
-    // 修复 $ $（中间有空格）→ $$
-    preprocessed = preprocessed.replace(/\$\s+\$/g, "$$");
-    // 修复 $$ $（块级公式后跟单个$）→ $$
-    preprocessed = preprocessed.replace(/\$\$\s+\$/g, "$$");
-    // 修复 $ $$（单个$后跟块级公式）→ $$
-    preprocessed = preprocessed.replace(/\$\s+\$\$/g, "$$");
-
-    // 调试日志
-    if (isDev) {
-      const originalSnippet = content.substring(0, 300);
-      const processedSnippet = preprocessed.substring(0, 300);
-      console.log("[Math Parser] 检测到需要修复的 LaTeX");
-      console.log("[Math Parser] 原始:", originalSnippet);
-      console.log("[Math Parser] 修复后:", processedSnippet);
-    }
-  }
-
-  return marked.parse(preprocessed);
+  
+  // 统一 LaTeX 定界符：\(...\) -> $...$，\[...\] -> $$...$$
+  let text = content;
+  // 统一 LaTeX 定界符，并确保公式前后有空格（避免和中文粘连导致无法识别）
+  text = text.replace(/\\\(\s*(.+?)\s*\\\)/g, (_, f) => ' $' + f.trim() + '$ ');
+  text = text.replace(/\\\[\s*(.+?)\s*\\\]/gs, (_, f) => ' $$' + f.trim() + '$$ ');
+  
+  const result = marked.parse(text);
+  return result;
 };
-
 const copiedMessageId = ref(null);
 const editingMessageId = ref(null);
 const editingContent = ref("");
