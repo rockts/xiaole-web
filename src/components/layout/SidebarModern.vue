@@ -163,10 +163,7 @@
               @mouseenter="hoveredSessionId = session.session_id || session.id"
               @mouseleave="hoveredSessionId = null"
             >
-              <div
-                class="session-content"
-                @click="loadSession(session.session_id || session.id)"
-              >
+              <div class="session-content">
                 <input
                   v-if="editingSessionId === (session.session_id || session.id)"
                   v-model="editingTitle"
@@ -1527,6 +1524,8 @@ watch(
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);
   z-index: 1;
+  touch-action: manipulation; /* 消除移动端 300ms 点击延迟 */
+  -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
 }
 .session-item:hover {
   background: var(--bg-hover);
