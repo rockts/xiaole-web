@@ -31,7 +31,12 @@
                 class="preview-message"
                 :class="msg.role"
               >
-                <img v-if="msg.image" :src="msg.image" alt="图片" class="message-image" />
+                <img
+                  v-if="msg.image"
+                  :src="msg.image"
+                  alt="图片"
+                  class="message-image"
+                />
                 <div class="message-text">{{ msg.content }}</div>
               </div>
             </div>
@@ -276,7 +281,7 @@ const shareToReddit = () => {
 }
 
 .share-dialog {
-  background: var(--bg-primary);
+  background: #1a1a1a;
   border-radius: 16px;
   box-shadow: 0 16px 70px rgba(0, 0, 0, 0.4);
   width: min(520px, 92vw);
@@ -293,12 +298,13 @@ const shareToReddit = () => {
   justify-content: space-between;
   padding: 20px 24px;
   flex-shrink: 0;
+  background: #2a2a2a;
 }
 
 .share-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #fff;
   margin: 0;
 }
 
@@ -308,7 +314,7 @@ const shareToReddit = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -317,7 +323,7 @@ const shareToReddit = () => {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* 预览卡片区域 */
