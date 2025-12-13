@@ -81,6 +81,61 @@
         </svg>
       </button>
 
+      <!-- 移动端：新对话按钮 -->
+      <button
+        v-if="isMobile"
+        class="icon-btn"
+        @click="handleNewChat"
+        aria-label="新对话"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+      </button>
+
+      <!-- 移动端：提醒按钮 -->
+      <div v-if="isMobile" class="reminder-container">
+        <button
+          class="icon-btn"
+          @click="toggleReminders"
+          aria-label="提醒"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span v-if="activeRemindersCount > 0" class="badge">{{
+            activeRemindersCount
+          }}</span>
+        </button>
+
+        <transition name="dropdown">
+          <div v-if="showReminders" class="reminder-dropdown">
+            <ReminderListPopup
+              :reminders="reminders"
+              :loading="loadingReminders"
+              :time-remaining-map="timeRemainingMap"
+              @close="closeReminders"
+              @delete="handleDeleteReminder"
+            />
+          </div>
+        </transition>
+      </div>
+
       <!-- 移动端：三点菜单按钮 -->
       <div v-if="isMobile && isChatPage" class="more-menu-container">
         <button
@@ -97,9 +152,9 @@
             stroke="currentColor"
             stroke-width="2"
           >
-            <circle cx="12" cy="5" r="1"></circle>
+            <circle cx="5" cy="12" r="1"></circle>
             <circle cx="12" cy="12" r="1"></circle>
-            <circle cx="12" cy="19" r="1"></circle>
+            <circle cx="19" cy="12" r="1"></circle>
           </svg>
         </button>
 
@@ -151,6 +206,7 @@
         </transition>
       </div>
 
+      <!-- 桌面端：提醒按钮 -->
       <div class="reminder-container" v-if="!isMobile">
         <button
           class="icon-btn reminder-btn"
@@ -282,6 +338,11 @@ const toggleMoreMenu = () => {
 
 const closeMoreMenu = () => {
   showMoreMenu.value = false;
+};
+
+const handleNewChat = () => {
+  chatStore.clearCurrentSession();
+  router.push("/chat");
 };
 
 const handleShare = () => {
