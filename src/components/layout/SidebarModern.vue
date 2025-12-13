@@ -193,6 +193,7 @@
               </div>
               <button
                 v-if="
+                  isMobile ||
                   hoveredSessionId === (session.session_id || session.id) ||
                   activeMenuSessionId === (session.session_id || session.id) ||
                   isCurrentSession(session)
