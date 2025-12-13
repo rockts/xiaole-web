@@ -700,7 +700,7 @@ onBeforeUnmount(() => {
     gap: 4px;
     right: var(--space-sm);
   }
-  
+
   .top-bar-center {
     display: none;
   }
