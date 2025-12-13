@@ -282,17 +282,17 @@ const shareToReddit = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .close-btn:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  border-color: var(--border-medium);
 }
 
 /* 预览卡片区域 */
