@@ -698,6 +698,11 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .top-bar-right {
     gap: 4px;
+    right: var(--space-sm);
+  }
+  
+  .top-bar-center {
+    padding: 0 90px;
   }
 }
 
