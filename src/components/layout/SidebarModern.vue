@@ -1547,6 +1547,7 @@ watch(
   flex: 1;
   min-width: 0;
   pointer-events: none; /* 让点击事件穿透到父元素 */
+  margin-right: 8px; /* 与菜单按钮保持间距 */
 }
 .session-title {
   font-size: 14px;
@@ -1554,6 +1555,7 @@ watch(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-right: 4px; /* 让省略号和按钮不紧挨 */
 }
 
 .pin-icon {
