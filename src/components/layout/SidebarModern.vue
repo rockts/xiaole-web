@@ -160,8 +160,8 @@
                 pinned: session.pinned,
               }"
               @click="loadSession(session.session_id || session.id)"
-              @mouseenter="hoveredSessionId = session.session_id || session.id"
-              @mouseleave="hoveredSessionId = null"
+              @mouseenter="!isMobile && (hoveredSessionId = session.session_id || session.id)"
+              @mouseleave="!isMobile && (hoveredSessionId = null)"
             >
               <div class="session-content">
                 <input
@@ -1527,9 +1527,12 @@ watch(
   touch-action: manipulation; /* 消除移动端 300ms 点击延迟 */
   -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
 }
-.session-item:hover {
-  background: var(--bg-hover);
-  z-index: 10;
+/* 只在支持 hover 的设备上应用 hover 效果（排除触摸设备） */
+@media (hover: hover) and (pointer: fine) {
+  .session-item:hover {
+    background: var(--bg-hover);
+    z-index: 10;
+  }
 }
 .session-item.active {
   background: var(--bg-active);
@@ -1542,7 +1545,7 @@ watch(
 .session-content {
   flex: 1;
   min-width: 0;
-  pointer-events: auto;
+  pointer-events: none; /* 让点击事件穿透到父元素 */
 }
 .session-title {
   font-size: 14px;
