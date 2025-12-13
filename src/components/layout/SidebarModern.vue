@@ -1314,8 +1314,8 @@ watch(
 }
 
 .logo img {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: transparent;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1334,8 +1334,8 @@ watch(
 }
 
 .logo-fallback {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--brand-primary);
   color: var(--text-inverse);

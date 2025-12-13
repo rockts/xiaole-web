@@ -81,9 +81,8 @@
         </svg>
       </button>
 
-      <!-- 移动端：新对话按钮 -->
+      <!-- 新对话按钮 -->
       <button
-        v-if="isMobile"
         class="icon-btn"
         @click="handleNewChat"
         aria-label="新对话"
@@ -104,8 +103,8 @@
         </svg>
       </button>
 
-      <!-- 移动端：提醒按钮 -->
-      <div v-if="isMobile" class="reminder-container">
+      <!-- 提醒按钮 -->
+      <div class="reminder-container">
         <button class="icon-btn" @click="toggleReminders" aria-label="提醒">
           <svg
             width="20"
@@ -136,8 +135,8 @@
         </transition>
       </div>
 
-      <!-- 移动端：三点菜单按钮 -->
-      <div v-if="isMobile && isChatPage" class="more-menu-container">
+      <!-- 三点菜单按钮 -->
+      <div v-if="isChatPage" class="more-menu-container">
         <button
           ref="moreMenuBtnRef"
           class="icon-btn"
