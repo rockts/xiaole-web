@@ -1545,7 +1545,7 @@ watch(
   z-index: 10;
 }
 .session-item.pinned {
-  background: var(--bg-secondary);
+  /* 置顶项目不再使用特殊背景 */
 }
 
 .session-content {
