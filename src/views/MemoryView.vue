@@ -208,6 +208,18 @@
         </div>
       </div>
     </div>
+
+    <!-- 删除确认弹窗 -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
+      <div class="confirm-dialog" @click.stop>
+        <h3 class="dialog-title">删除记忆</h3>
+        <p class="dialog-message">确定要删除这条记忆吗？此操作不可恢复。</p>
+        <div class="dialog-actions">
+          <button class="btn-cancel" @click="cancelDelete">取消</button>
+          <button class="btn-delete" @click="confirmDeleteMemory">删除</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -224,6 +236,10 @@ const activeTag = ref(null);
 const editingMemory = ref(null);
 const editContent = ref("");
 const editTag = ref("");
+
+// 删除确认弹窗状态
+const showDeleteConfirm = ref(false);
+const memoryToDelete = ref(null);
 
 // 统一使用绝对时间显示，移除相对时间开关
 const labelMap = {
@@ -464,9 +480,21 @@ const copyContent = (text) => {
 };
 
 const deleteMemory = async (id) => {
-  if (confirm("确定要删除这条记忆吗？")) {
-    await memoryStore.deleteMemory(id);
+  memoryToDelete.value = id;
+  showDeleteConfirm.value = true;
+};
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false;
+  memoryToDelete.value = null;
+};
+
+const confirmDeleteMemory = async () => {
+  if (memoryToDelete.value) {
+    await memoryStore.deleteMemory(memoryToDelete.value);
   }
+  showDeleteConfirm.value = false;
+  memoryToDelete.value = null;
 };
 
 onMounted(() => {
@@ -918,7 +946,8 @@ onMounted(() => {
 }
 
 .btn-cancel,
-.btn-save {
+.btn-save,
+.btn-delete {
   padding: 8px 20px;
   border-radius: 8px;
   font-size: 14px;
@@ -944,6 +973,33 @@ onMounted(() => {
 
 .btn-save:hover {
   background: var(--brand-primary-hover);
+}
+
+.btn-delete {
+  background: var(--error, #ef4444);
+  color: #fff;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+}
+
+/* 确认删除弹窗 */
+.confirm-dialog {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.2s ease-out;
+}
+
+.dialog-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 24px 0;
 }
 
 @keyframes fadeIn {
