@@ -1721,7 +1721,7 @@ const renderMarkdown = (content) => {
   // 检测错误的 LaTeX 格式：被拆分的命令，如 \alph$a, $\bet$a, \alpha$, $\beta 等
   // 也检测多次拆分的情况，如 \alp$h$a, \be$t$a, \gam$m$a
   const hasBrokenLatex =
-    /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]|\\[a-zA-Z]+\$(?!\$)|(?<!\$)\$\\[a-zA-Z]+(?!\$)|[a-z]\$(?=[，。、\s])|(?<!\$)\$[a-z](?!\$)|\\[a-zA-Z]+\$[a-z]\$[a-z]/.test(
+    /\\[a-zA-Z]{2,5}\$[a-z]|\$\\[a-zA-Z]{2,5}\$[a-z]|\\[a-zA-Z]+\$\$[a-z]|\\[a-zA-Z]+\$(?!\$)|(?<!\$)\$\\[a-zA-Z]+(?!\$)|[a-z]\$(?=[，。、\s])|(?<!\$)\$[a-z](?!\$)|\\[a-zA-Z]+\$[a-z]\$[a-z]|\\\$|\\\\[a-zA-Z]/.test(
       content
     );
 
