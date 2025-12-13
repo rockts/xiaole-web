@@ -2247,6 +2247,7 @@ const regenerateMessage = async (message) => {
 
     // 保存必要信息
     const userMsgId = lastUserMessage.id;
+    const aiMsgId = message.id; // 当前要重新生成的 AI 消息 ID
     const content = lastUserMessage.content;
     let imagePath = lastUserMessage.image_path;
 
@@ -2277,10 +2278,18 @@ const regenerateMessage = async (message) => {
       timestamp: new Date().toISOString(),
     });
 
-    // 3. 后端操作 (异步执行)
+    // 3. 后端操作 - 删除用户消息和 AI 回复消息
+    const deletePromises = [];
     if (userMsgId && !String(userMsgId).startsWith("temp-")) {
-      await chatStore.deleteMessageApi(userMsgId);
+      deletePromises.push(chatStore.deleteMessageApi(userMsgId));
     }
+    if (aiMsgId && !String(aiMsgId).startsWith("temp-")) {
+      deletePromises.push(chatStore.deleteMessageApi(aiMsgId));
+    }
+    // 并行删除，不阻塞后续发送
+    Promise.all(deletePromises).catch((e) => {
+      console.error("Failed to delete messages from backend:", e);
+    });
 
     // 4. 重新发送
     await chatStore.sendMessage(content, imagePath, router);
