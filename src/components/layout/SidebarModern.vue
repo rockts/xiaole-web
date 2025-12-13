@@ -160,7 +160,10 @@
                 pinned: session.pinned,
               }"
               @click="loadSession(session.session_id || session.id)"
-              @mouseenter="!isMobile && (hoveredSessionId = session.session_id || session.id)"
+              @mouseenter="
+                !isMobile &&
+                  (hoveredSessionId = session.session_id || session.id)
+              "
               @mouseleave="!isMobile && (hoveredSessionId = null)"
             >
               <div class="session-content">
@@ -454,19 +457,17 @@
       />
     </teleport>
 
-    <!-- 删除确认对话框 - teleport 到 body 避免被侧边栏遮挡 -->
-    <teleport to="body">
-      <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
-        <div class="confirm-dialog" @click.stop>
-          <h3 class="confirm-title">永久删除对话</h3>
-          <p class="confirm-message">删除后，该对话将不可恢复。确认删除吗？</p>
-          <div class="confirm-actions">
-            <button class="btn-cancel" @click="cancelDelete">取消</button>
-            <button class="btn-delete" @click="deleteSession">删除</button>
-          </div>
-        </div>
-      </div>
-    </teleport>
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog
+      :visible="showDeleteConfirm"
+      title="删除对话"
+      message="删除后，该对话将不可恢复。确认删除吗？"
+      confirm-text="删除"
+      cancel-text="取消"
+      type="danger"
+      @confirm="deleteSession"
+      @cancel="cancelDelete"
+    />
 
     <!-- 分享弹窗 -->
     <ShareDialog
@@ -486,6 +487,7 @@ import { storeToRefs } from "pinia";
 import logoImage from "@/assets/logo-xiaole.png";
 import ShareDialog from "@/components/common/ShareDialog.vue";
 import SettingsModal from "@/components/common/SettingsModal.vue";
+import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 import api from "@/services/api";
 
 const router = useRouter();

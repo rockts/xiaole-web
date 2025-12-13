@@ -81,30 +81,76 @@
         </svg>
       </button>
 
-      <!-- 移动端：仅保留“分享”按钮（避免与侧边栏重复） -->
-      <button
-        v-if="isMobile && hasSharableSession"
-        class="icon-btn"
-        @click="shareCurrent"
-        aria-label="分享当前对话"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
+      <!-- 移动端：三点菜单按钮 -->
+      <div v-if="isMobile && isChatPage" class="more-menu-container">
+        <button
+          ref="moreMenuBtnRef"
+          class="icon-btn"
+          @click.stop="toggleMoreMenu"
+          aria-label="更多操作"
         >
-          <circle cx="18" cy="5" r="3"></circle>
-          <circle cx="6" cy="12" r="3"></circle>
-          <circle cx="18" cy="19" r="3"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-      </button>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="5" r="1"></circle>
+            <circle cx="12" cy="12" r="1"></circle>
+            <circle cx="12" cy="19" r="1"></circle>
+          </svg>
+        </button>
 
-      <!-- 提醒按钮：仅桌面端显示 -->
+        <!-- 下拉菜单 -->
+        <transition name="dropdown">
+          <div v-if="showMoreMenu" class="more-menu-dropdown" @click.stop>
+            <button
+              class="menu-item"
+              :disabled="!hasSharableSession"
+              @click="handleShare"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span>分享对话</span>
+            </button>
+            <button
+              class="menu-item menu-item-danger"
+              :disabled="!hasSharableSession"
+              @click="handleDeleteSession"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path
+                  d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6m5 0V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"
+                ></path>
+              </svg>
+              <span>删除对话</span>
+            </button>
+          </div>
+        </transition>
+      </div>
+
       <div class="reminder-container" v-if="!isMobile">
         <button
           class="icon-btn reminder-btn"
@@ -150,6 +196,18 @@
       share-mode="session"
       @close="showShareDialog = false"
     />
+
+    <!-- 删除确认弹窗 -->
+    <ConfirmDialog
+      :visible="showDeleteConfirm"
+      title="删除对话"
+      message="删除后，该对话将不可恢复。确认删除吗？"
+      confirm-text="删除"
+      cancel-text="取消"
+      type="danger"
+      @confirm="confirmDeleteSession"
+      @cancel="cancelDeleteSession"
+    />
   </div>
 </template>
 
@@ -162,6 +220,7 @@ import api from "@/services/api";
 import { useWebSocket } from "@/composables/useWebSocket";
 import ReminderListPopup from "@/components/common/ReminderListPopup.vue";
 import ShareDialog from "@/components/common/ShareDialog.vue";
+import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -179,6 +238,13 @@ const isMobile = ref(window.innerWidth <= 768);
 const showMore = ref(false);
 const moreBtnRef = ref(null);
 const moreDropdownRef = ref(null);
+
+// 三点菜单状态
+const showMoreMenu = ref(false);
+const moreMenuBtnRef = ref(null);
+
+// 删除确认弹窗状态
+const showDeleteConfirm = ref(false);
 
 const toggleMore = () => {
   showMore.value = !showMore.value;
@@ -206,6 +272,50 @@ const shareCurrent = () => {
     closeMore();
   } else {
     alert("当前没有可分享的对话");
+  }
+};
+
+// 三点菜单相关函数
+const toggleMoreMenu = () => {
+  showMoreMenu.value = !showMoreMenu.value;
+};
+
+const closeMoreMenu = () => {
+  showMoreMenu.value = false;
+};
+
+const handleShare = () => {
+  closeMoreMenu();
+  shareCurrent();
+};
+
+const handleDeleteSession = () => {
+  closeMoreMenu();
+  showDeleteConfirm.value = true;
+};
+
+const confirmDeleteSession = async () => {
+  const sessionId = route.params.sessionId;
+  if (sessionId) {
+    try {
+      await api.deleteSession(sessionId);
+      showDeleteConfirm.value = false;
+      router.push("/chat");
+    } catch (e) {
+      console.error("删除对话失败:", e);
+      alert("删除失败，请重试");
+    }
+  }
+};
+
+const cancelDeleteSession = () => {
+  showDeleteConfirm.value = false;
+};
+
+// 点击外部关闭菜单
+const handleClickOutside = (event) => {
+  if (showMoreMenu.value && moreMenuBtnRef.value && !moreMenuBtnRef.value.contains(event.target)) {
+    closeMoreMenu();
   }
 };
 
@@ -355,6 +465,8 @@ onMounted(() => {
   }, 30000);
   // 初始加载
   loadReminders();
+  // 点击外部关闭菜单
+  document.addEventListener("click", handleClickOutside);
 });
 
 onBeforeUnmount(() => {
@@ -362,6 +474,7 @@ onBeforeUnmount(() => {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+  document.removeEventListener("click", handleClickOutside);
 });
 
 const saveTitleEdit = async () => {
@@ -684,5 +797,68 @@ onBeforeUnmount(() => {
   .reminder-dropdown {
     right: -60px;
   }
+}
+
+/* 三点菜单容器 */
+.more-menu-container {
+  position: relative;
+}
+
+/* 下拉菜单 */
+.more-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-item-danger {
+  color: var(--error, #ef4444);
+}
+
+.menu-item-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 下拉动画 */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>
