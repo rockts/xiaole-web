@@ -161,42 +161,6 @@
           </div>
         </transition>
       </div>
-
-      <!-- 桌面端：提醒按钮 -->
-      <div class="reminder-container" v-if="!isMobile">
-        <button
-          class="icon-btn reminder-btn"
-          @click="toggleReminders"
-          aria-label="提醒"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <span v-if="activeRemindersCount > 0" class="badge">{{
-            activeRemindersCount
-          }}</span>
-        </button>
-
-        <transition name="dropdown">
-          <div v-if="showReminders" class="reminder-dropdown">
-            <ReminderListPopup
-              :reminders="reminders"
-              :loading="loadingReminders"
-              :time-remaining-map="timeRemainingMap"
-              @close="closeReminders"
-              @delete="handleDeleteReminder"
-            />
-          </div>
-        </transition>
-      </div>
     </div>
 
     <!-- 分享弹窗 -->
@@ -555,20 +519,25 @@ onMounted(() => {
   };
   window.addEventListener("resize", onResize);
   window.__topbar_onResize = onResize;
-  
+
   // 主题跟随系统设置
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const savedTheme = localStorage.getItem("theme");
-  const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+  const theme = savedTheme || (prefersDark ? "dark" : "light");
   document.documentElement.setAttribute("data-theme", theme);
-  
+
   // 监听系统主题变化
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('theme')) {
-      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-    }
-  });
-  
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (e) => {
+      if (!localStorage.getItem("theme")) {
+        document.documentElement.setAttribute(
+          "data-theme",
+          e.matches ? "dark" : "light"
+        );
+      }
+    });
+
   document.addEventListener("click", handleOutsideClick);
 
   // Reminders init
