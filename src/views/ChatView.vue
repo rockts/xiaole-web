@@ -117,10 +117,6 @@
               'thinking-message': message.status === 'thinking',
             },
           ]"
-          @touchstart="handleMessageTouchStart($event, message)"
-          @touchend="handleMessageTouchEnd"
-          @touchmove="handleMessageTouchMove"
-          @contextmenu.prevent="handleMessageContextMenu($event, message)"
         >
           <template v-if="message.role === 'assistant'">
             <!-- AI消息的图片显示 -->
@@ -1090,138 +1086,6 @@
       </div>
     </div>
 
-    <!-- 移动端长按菜单 -->
-    <Teleport to="body">
-      <Transition name="context-menu-fade">
-        <div
-          v-if="showContextMenu"
-          class="mobile-context-menu-overlay"
-          @click="closeContextMenu"
-          @touchstart.prevent="closeContextMenu"
-        >
-          <div
-            class="mobile-context-menu"
-            :style="contextMenuStyle"
-            @click.stop
-            @touchstart.stop
-          >
-            <div class="context-menu-header">
-              <span class="context-menu-title">消息操作</span>
-            </div>
-            <div class="context-menu-actions">
-              <button
-                class="context-menu-btn"
-                @click="contextMenuAction('copy')"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path
-                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                  ></path>
-                </svg>
-                <span>复制</span>
-              </button>
-              <button
-                v-if="
-                  contextMenuMessage?.role === 'user' &&
-                  contextMenuMessage?.messageType !== 'voice'
-                "
-                class="context-menu-btn"
-                @click="contextMenuAction('edit')"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                  ></path>
-                  <path
-                    d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                  ></path>
-                </svg>
-                <span>编辑</span>
-              </button>
-              <button
-                v-if="contextMenuMessage?.role === 'assistant'"
-                class="context-menu-btn"
-                @click="contextMenuAction('speak')"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-                <span>朗读</span>
-              </button>
-              <button
-                v-if="contextMenuMessage?.role === 'assistant'"
-                class="context-menu-btn"
-                @click="contextMenuAction('share')"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                  <polyline points="16 6 12 2 8 6"></polyline>
-                  <line x1="12" y1="2" x2="12" y2="15"></line>
-                </svg>
-                <span>分享</span>
-              </button>
-              <button
-                v-if="
-                  contextMenuMessage?.role === 'assistant' &&
-                  contextMenuMessage?.noRegen !== true
-                "
-                class="context-menu-btn"
-                @click="contextMenuAction('regenerate')"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <polyline points="23 4 23 10 17 10"></polyline>
-                  <polyline points="1 20 1 14 7 14"></polyline>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
-                  <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
-                </svg>
-                <span>重新生成</span>
-              </button>
-            </div>
-            <button class="context-menu-cancel" @click="closeContextMenu">
-              取消
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
     <!-- 分享弹窗 -->
     <ShareDialog
       v-if="showShareDialog"
@@ -2124,122 +1988,6 @@ const copiedMessageId = ref(null);
 const editingMessageId = ref(null);
 const editingContent = ref("");
 const isSavingEdit = ref(false); // 防止重复提交
-
-// ========== 移动端长按菜单 ==========
-const showContextMenu = ref(false);
-const contextMenuMessage = ref(null);
-const contextMenuStyle = ref({});
-let longPressTimer = null;
-let touchStartPos = { x: 0, y: 0 };
-const LONG_PRESS_DURATION = 500; // 长按触发时间(ms)
-const TOUCH_MOVE_THRESHOLD = 10; // 移动阈值(px)
-
-const handleMessageTouchStart = (event, message) => {
-  // 只在移动端启用
-  if (!isMobile.value) return;
-  // 正在思考的消息不显示菜单
-  if (message.status === "thinking") return;
-
-  const touch = event.touches[0];
-  touchStartPos = { x: touch.clientX, y: touch.clientY };
-
-  longPressTimer = setTimeout(() => {
-    // 触发震动反馈（如果支持）
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-    showContextMenuAt(touch.clientX, touch.clientY, message);
-  }, LONG_PRESS_DURATION);
-};
-
-const handleMessageTouchMove = (event) => {
-  if (!longPressTimer) return;
-
-  const touch = event.touches[0];
-  const dx = Math.abs(touch.clientX - touchStartPos.x);
-  const dy = Math.abs(touch.clientY - touchStartPos.y);
-
-  // 如果移动超过阈值，取消长按
-  if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-  }
-};
-
-const handleMessageTouchEnd = () => {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-  }
-};
-
-const handleMessageContextMenu = (event, message) => {
-  // 桌面端右键菜单也可以触发
-  if (message.status === "thinking") return;
-  showContextMenuAt(event.clientX, event.clientY, message);
-};
-
-const showContextMenuAt = (x, y, message) => {
-  contextMenuMessage.value = message;
-
-  // 计算菜单位置，确保不超出屏幕
-  const menuWidth = 280;
-  const menuHeight = 320;
-  const padding = 16;
-
-  let left = x - menuWidth / 2;
-  let top = y;
-
-  // 水平边界检查
-  if (left < padding) left = padding;
-  if (left + menuWidth > window.innerWidth - padding) {
-    left = window.innerWidth - menuWidth - padding;
-  }
-
-  // 垂直边界检查 - 优先显示在点击位置上方
-  if (top + menuHeight > window.innerHeight - padding) {
-    top = window.innerHeight - menuHeight - padding;
-  }
-  if (top < padding) top = padding;
-
-  contextMenuStyle.value = {
-    left: `${left}px`,
-    top: `${top}px`,
-  };
-
-  showContextMenu.value = true;
-};
-
-const closeContextMenu = () => {
-  showContextMenu.value = false;
-  contextMenuMessage.value = null;
-};
-
-const contextMenuAction = (action) => {
-  const message = contextMenuMessage.value;
-  if (!message) return;
-
-  closeContextMenu();
-
-  switch (action) {
-    case "copy":
-      copyMessage(message);
-      break;
-    case "edit":
-      editMessage(message);
-      break;
-    case "speak":
-      toggleSpeak(message);
-      break;
-    case "share":
-      shareMessage(message);
-      break;
-    case "regenerate":
-      regenerateMessage(message);
-      break;
-  }
-};
-// ========== 长按菜单结束 ==========
 
 // ========== 下拉刷新功能 ==========
 const pullRefreshState = ref("idle"); // idle | pulling | ready | loading
@@ -6445,160 +6193,29 @@ const feedbackMessage = async (message, type) => {
   color: var(--text-primary) !important;
 }
 
-/* ========== 移动端长按菜单样式 ========== */
-.mobile-context-menu-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 9999;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-.mobile-context-menu {
-  position: absolute;
-  width: 280px;
-  background: var(--card-bg);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  animation: contextMenuSlideUp 0.2s ease-out;
-}
-
-@keyframes contextMenuSlideUp {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.context-menu-header {
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.context-menu-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.context-menu-actions {
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-}
-
-.context-menu-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: none;
-  border: none;
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  text-align: left;
-  width: 100%;
-}
-
-.context-menu-btn:hover,
-.context-menu-btn:active {
-  background: var(--tab-hover);
-}
-
-.context-menu-btn svg {
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.context-menu-cancel {
-  width: 100%;
-  padding: 16px;
-  background: none;
-  border: none;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.context-menu-cancel:hover,
-.context-menu-cancel:active {
-  background: var(--tab-hover);
-}
-
-/* 菜单过渡动画 */
-.context-menu-fade-enter-active,
-.context-menu-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.context-menu-fade-enter-active .mobile-context-menu,
-.context-menu-fade-leave-active .mobile-context-menu {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.context-menu-fade-enter-from,
-.context-menu-fade-leave-to {
-  opacity: 0;
-}
-
-.context-menu-fade-enter-from .mobile-context-menu,
-.context-menu-fade-leave-to .mobile-context-menu {
-  transform: scale(0.95) translateY(10px);
-  opacity: 0;
-}
-
-/* 深色主题适配 */
-[data-theme="dark"] .mobile-context-menu {
-  background: #2f2f2f;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme="dark"] .mobile-context-menu-overlay {
-  background: rgba(0, 0, 0, 0.6);
-}
-/* ========== 长按菜单样式结束 ========== */
-
 /* ========== 下拉刷新样式 ========== */
 .pull-refresh-indicator {
   position: absolute;
-  top: 0;
+  top: -60px;
   left: 0;
   right: 0;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateY(-60px);
   transition: transform 0.2s ease-out;
   z-index: 10;
   pointer-events: none;
+  opacity: 0;
 }
 
 .pull-refresh-indicator.visible {
+  opacity: 1;
   transition: none;
 }
 
 .pull-refresh-indicator.loading {
+  opacity: 1;
   transition: transform 0.2s ease-out;
 }
 
