@@ -57,7 +57,7 @@
         <router-link
           to="/chat"
           class="nav-item"
-          :class="{ active: isActive('/chat') }"
+          :class="{ active: isNewChatActive() }"
           @click="handleMobileNav"
         >
           <span class="nav-icon">
@@ -565,6 +565,7 @@ const navItems = [
 ];
 
 const isActive = (path) => route.path.startsWith(path);
+const isNewChatActive = () => route.path === '/chat' && !route.params.sessionId;
 const isCurrentSession = (session) =>
   route.params.sessionId == (session.session_id || session.id);
 
