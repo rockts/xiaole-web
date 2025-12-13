@@ -60,8 +60,8 @@
         </svg>
       </button>
 
-      <!-- 提醒按钮（仅移动端） -->
-      <div v-if="isMobile" class="reminder-container">
+      <!-- 提醒按钮 -->
+      <div class="reminder-container">
         <button class="icon-btn" @click="toggleReminders" aria-label="提醒">
           <svg
             width="20"
