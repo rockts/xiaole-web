@@ -3995,7 +3995,7 @@ const feedbackMessage = async (message, type) => {
   flex-shrink: 0;
 }
 .chat-view.empty .input-wrapper {
-  max-width: 32rem; /* PC端输入框更窄 */
+  max-width: 42rem; /* PC端输入框 */
   width: 90%;
   box-shadow: none;
   background: var(--bg-secondary);
