@@ -31,6 +31,7 @@
                 class="preview-message"
                 :class="msg.role"
               >
+                <img v-if="msg.image" :src="msg.image" alt="图片" class="message-image" />
                 <div class="message-text">{{ msg.content }}</div>
               </div>
             </div>
@@ -157,14 +158,42 @@ const props = defineProps({
 const justCopied = ref(false);
 const previewMessages = ref([]);
 
+// 格式化图片路径
+const formatImagePath = (path) => {
+  if (!path) return "";
+  // 如果是 base64 或 blob 或 http 开头，直接返回
+  if (
+    path.startsWith("data:") ||
+    path.startsWith("blob:") ||
+    path.startsWith("http")
+  ) {
+    return path;
+  }
+  // 统一路径格式：确保以 / 开头
+  let normalizedPath = path.replace(/^\/+/, "/");
+  if (!normalizedPath.startsWith("/")) {
+    normalizedPath = "/" + normalizedPath;
+  }
+  // 生产环境：拼接 API 基础 URL
+  const apiBase = import.meta.env.VITE_API_BASE;
+  if (apiBase) {
+    return `${apiBase}${normalizedPath}`;
+  }
+  return normalizedPath;
+};
+
+// 处理消息，提取图片
+const processMessage = (m) => ({
+  role: m.role || m.author || "assistant",
+  content: truncateText(m.content || "", 150),
+  image: m.image_path ? formatImagePath(m.image_path) : null,
+});
+
 // 获取预览消息
 onMounted(async () => {
   // 如果已传入 messages，直接使用
   if (props.messages && props.messages.length > 0) {
-    previewMessages.value = props.messages.slice(-4).map((m) => ({
-      role: m.role || m.author || "assistant",
-      content: truncateText(m.content || "", 150),
-    }));
+    previewMessages.value = props.messages.slice(-4).map(processMessage);
     return;
   }
 
@@ -174,10 +203,7 @@ onMounted(async () => {
     if (id) {
       const data = await api.getSession(id);
       const list = data.messages || data.history || [];
-      previewMessages.value = list.slice(-4).map((m) => ({
-        role: m.role || m.author || "assistant",
-        content: truncateText(m.content || "", 150),
-      }));
+      previewMessages.value = list.slice(-4).map(processMessage);
     }
   } catch (err) {
     console.log("获取预览消息失败:", err);
@@ -282,17 +308,16 @@ const shareToReddit = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
   border-radius: 8px;
-  color: var(--text-primary);
+  color: #fff;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .close-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-medium);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* 预览卡片区域 */
@@ -342,6 +367,14 @@ const shareToReddit = () => {
 
 .preview-message.assistant {
   color: rgba(255, 255, 255, 0.95);
+}
+
+.message-image {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  object-fit: cover;
 }
 
 .message-text {
