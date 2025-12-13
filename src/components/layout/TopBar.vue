@@ -15,9 +15,8 @@
         stroke-linecap="round"
         stroke-linejoin="round"
       >
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
+        <line x1="3" y1="8" x2="21" y2="8"></line>
+        <line x1="3" y1="16" x2="14" y2="16"></line>
       </svg>
     </button>
 
