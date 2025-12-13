@@ -1554,7 +1554,7 @@ watch(
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip; /* 直接截断，不显示省略号 */
   padding-right: 4px; /* 让省略号和按钮不紧挨 */
 }
 
