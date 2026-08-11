@@ -44,6 +44,12 @@
       <div class="settings-section">
         <h4>🤖 AI 设置</h4>
         <div class="form-group">
+          <label>对话引擎</label>
+          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="legacy" /> 小乐 1.0（稳定）</label>
+          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="core2" /> 小乐 2.0（实验）</label>
+          <small>2.0 使用新的 Brain / 乐知 / 小可架构，目前处于实验阶段。</small>
+        </div>
+        <div class="form-group">
           <label>响应风格</label>
           <select v-model="settings.responseStyle">
             <option value="concise">简洁</option>
@@ -101,6 +107,7 @@ const settings = ref({
   theme: "light",
   compactMode: false,
   responseStyle: "balanced",
+  chatMode: "legacy",
   autoMemory: true,
   voiceEnabled: false,
   notificationEnabled: true,
@@ -117,6 +124,7 @@ const loadSettings = () => {
 
 const saveSettings = () => {
   localStorage.setItem("xiaole_settings", JSON.stringify(settings.value));
+  window.dispatchEvent(new CustomEvent("xiaole-chat-mode-change", { detail: settings.value.chatMode }));
   alert("设置已保存！");
 };
 

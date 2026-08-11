@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { createSafeCore2Error, mapCore2Response } from '@/chat/core2Response'
 
 // API基础URL配置
 // 优先使用环境变量，否则使用空字符串（通过vite代理访问）
@@ -151,6 +152,26 @@ export default {
             timeout: 120000,
             retryCount: MAX_RETRIES
         })
+    },
+
+    async chatCore2(data, { signal } = {}) {
+        try {
+            const response = await api.post('/api/v2/chat', {
+                message: data.message || '',
+                conversation_id: data.conversation_id || null,
+                attachments: Array.isArray(data.attachments) ? data.attachments : []
+            }, {
+                timeout: 120000,
+                retryCount: MAX_RETRIES,
+                signal
+            })
+            return {
+                ...mapCore2Response(response),
+                conversationId: typeof response?.conversation_id === 'string' ? response.conversation_id : null
+            }
+        } catch (cause) {
+            throw createSafeCore2Error(cause)
+        }
     },
 
     // 流式聊天（SSE 兼容，切片流）

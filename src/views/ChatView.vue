@@ -33,6 +33,7 @@
     </div>
 
     <!-- 会话加载错误提示 -->
+    <div v-if="chatMode === 'core2'" class="core2-mode-notice">小乐 2.0 · 实验</div>
     <div v-if="sessionLoadError" class="session-error-message">
       <div class="error-icon">⚠️</div>
       <h2 class="error-title">无法加载会话</h2>
@@ -218,6 +219,14 @@
                   }"
                   v-html="renderMarkdown(getDisplayContent(message))"
                 ></div>
+                <Core2ResultMeta
+                  v-if="message.core2"
+                  :intent="message.intent"
+                  :sources="message.sources"
+                  :action="message.action"
+                  :core2-error="message.core2Error"
+                  @switch-legacy="switchToLegacy"
+                />
 
                 <div
                   v-if="message.status === 'typing'"
@@ -1129,10 +1138,18 @@ import api from "@/services/api";
 
 import ShareDialog from "@/components/common/ShareDialog.vue";
 import VoiceModeDialog from "@/components/voice/VoiceModeDialog.vue";
+import Core2ResultMeta from "@/components/chat/Core2ResultMeta.vue";
+import { readChatMode, writeChatMode } from "@/chat/chatMode";
 
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
+const chatMode = ref(readChatMode());
+const onChatModeChange = (event) => { chatMode.value = event.detail === "core2" ? "core2" : "legacy"; };
+const switchToLegacy = () => {
+  chatMode.value = writeChatMode("legacy");
+  window.dispatchEvent(new CustomEvent("xiaole-chat-mode-change", { detail: "legacy" }));
+};
 const { messages, sessionInfo, isTyping } = storeToRefs(chatStore);
 const isEmptyChat = computed(
   () => (messages.value?.length || 0) === 0 && !isTyping.value
@@ -2614,6 +2631,17 @@ const sendMessage = async () => {
   // 如果没有内容且没有待发送文件，且不在打字中，则返回
   if ((!content && !pendingFile.value) || isTyping.value) return;
 
+  if (chatMode.value === "core2" && pendingFile.value) {
+    messages.value.push({
+      id: `core2-attachment-${Date.now()}`,
+      role: "assistant",
+      content: "小乐 2.0 实验模式暂不支持附件，请移除附件或切回小乐 1.0。",
+      status: "done",
+      core2: true,
+    });
+    return;
+  }
+
   // 立即清空输入框和引用
   messageInput.value.innerText = "";
   messageInput.value.innerHTML = "";
@@ -2719,7 +2747,12 @@ const sendMessage = async () => {
             }
           }
         }
-        await chatStore.sendMessageStreamed(content, pathToSend, router);
+        if (chatMode.value === "core2") {
+          const attachments = currentFile ? [{ name: currentFile.name, type: currentFile.type }] : [];
+          await chatStore.sendMessageCore2(content, attachments, router);
+        } else {
+          await chatStore.sendMessageStreamed(content, pathToSend, router);
+        }
       } catch (e) {
         console.error("发送消息失败:", e.message);
         // 移除 thinking 占位消息
@@ -3270,6 +3303,7 @@ const canSend = computed(() => {
 });
 
 onMounted(() => {
+  window.addEventListener("xiaole-chat-mode-change", onChatModeChange);
   // 终极超时保护：如果10秒后还在加载,强制停止
   setTimeout(() => {
     if (isLoadingSession.value) {
@@ -3441,6 +3475,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("xiaole-chat-mode-change", onChatModeChange);
   // 停止朗读
   stopSpeech();
   stopVisualizer();
