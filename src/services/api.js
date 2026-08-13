@@ -114,6 +114,9 @@ api.interceptors.response.use(
 )
 
 export default {
+    getHome() {
+        return api.get('/api/v2/home', { retryCount: MAX_RETRIES })
+    },
     // 会话相关
     getSessions() {
         return api.get('/sessions', { params: { all_sessions: true, _t: Date.now() } })

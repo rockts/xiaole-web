@@ -17,6 +17,7 @@ export default defineConfig({
                     // 前端路由列表 - 这些路径刷新时应该返回 index.html
                     const frontendRoutes = [
                         '/chat',
+                        '/home',
                         '/memory',
                         '/behavior',
                         '/tasks',

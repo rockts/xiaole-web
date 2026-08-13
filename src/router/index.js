@@ -7,6 +7,7 @@ import TasksView from '@/views/TasksView.vue'
 import TaskDetailView from '@/views/TaskDetailView.vue'
 import DocumentsView from '@/views/DocumentsView.vue'
 import ToolsView from '@/views/ToolsView.vue'
+import HomeView from '@/views/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -21,6 +22,9 @@ const router = createRouter({
         {
             path: '/',
             redirect: '/chat'
+        },
+        {
+            path: '/home', name: 'Home', component: HomeView, meta: { title: '首页' }
         },
         {
             path: '/chat/:sessionId?',

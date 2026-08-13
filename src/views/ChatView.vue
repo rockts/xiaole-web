@@ -1140,6 +1140,7 @@ import ShareDialog from "@/components/common/ShareDialog.vue";
 import VoiceModeDialog from "@/components/voice/VoiceModeDialog.vue";
 import Core2ResultMeta from "@/components/chat/Core2ResultMeta.vue";
 import { readChatMode, writeChatMode } from "@/chat/chatMode";
+import { applyDraftToEditor, consumeHomeDraft } from "@/chat/homeDraft";
 
 const route = useRoute();
 const router = useRouter();
@@ -3303,6 +3304,11 @@ const canSend = computed(() => {
 });
 
 onMounted(() => {
+  const homeDraft = consumeHomeDraft();
+  if (homeDraft) {
+    inputContent.value = homeDraft;
+    nextTick(() => applyDraftToEditor(messageInput.value, homeDraft));
+  }
   window.addEventListener("xiaole-chat-mode-change", onChatModeChange);
   // 终极超时保护：如果10秒后还在加载,强制停止
   setTimeout(() => {

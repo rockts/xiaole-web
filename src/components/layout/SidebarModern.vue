@@ -537,6 +537,11 @@ const isCollapsed = ref(
 
 const navItems = [
   {
+    path: "/home",
+    label: "首页",
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg>',
+  },
+  {
     path: "/memory",
     label: "记忆",
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>',

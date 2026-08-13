@@ -1,0 +1,2 @@
+export const consumeHomeDraft=(history=window.history,url=window.location.href)=>{const state=history.state||{};if(state.source!=='home_quick_question'||typeof state.xiaoleDraft!=='string')return '';const draft=state.xiaoleDraft.trim();history.replaceState({...state,xiaoleDraft:undefined,source:undefined},'',url);return draft}
+export const applyDraftToEditor=(editor,draft)=>{if(!editor||!draft)return false;editor.innerText=draft;return true}
