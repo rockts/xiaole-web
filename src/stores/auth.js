@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import { API_BASE_URL } from '@/config/apiBase'
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('token') || null)
@@ -19,7 +20,6 @@ export const useAuthStore = defineStore('auth', () => {
             formData.append('password', password)
 
             // 使用 axios 直接请求，避免循环依赖 api.js
-            const API_BASE_URL = import.meta.env.VITE_API_BASE || ''
             const response = await axios.post(`${API_BASE_URL}/token`, formData)
 
             const { access_token } = response.data

@@ -139,6 +139,7 @@
 </template>
 
 <script setup>
+import { API_BASE_URL } from '@/config/apiBase'
 import { ref, onMounted } from "vue";
 import api from "@/services/api";
 
@@ -170,9 +171,8 @@ const formatImagePath = (path) => {
     normalizedPath = "/" + normalizedPath;
   }
   // 生产环境：拼接 API 基础 URL
-  const apiBase = import.meta.env.VITE_API_BASE;
-  if (apiBase) {
-    return `${apiBase}${normalizedPath}`;
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${normalizedPath}`;
   }
   return normalizedPath;
 };

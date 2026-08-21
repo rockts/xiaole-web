@@ -27,20 +27,6 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>小乐 AI 管家 v0.9.1</title>
     <script>
-        // 注册 Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('✅ SW registered:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('❌ SW registration failed:', error);
-                    });
-            });
-        }
-    </script>
-    <script>
         // 调试工具: 按 Ctrl+Shift+D 清除认证信息
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.shiftKey && e.key === 'D') {
@@ -51,36 +37,6 @@
                 location.reload();
             }
         });
-
-        // 启动时检查token有效性
-        (function () {
-            const token = localStorage.getItem('token');
-            if (token) {
-                console.log('🔍 检测到token，验证中...');
-                fetch('/sessions', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                }).then(res => {
-                    if (res.status === 401) {
-                        console.warn('⚠️ Token无效，清除中...');
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        if (window.location.pathname !== '/login') {
-                            window.location.href = '/login';
-                        }
-                    } else if (res.status === 404) {
-                        // 404 可能是后端未启动或路径不存在，静默处理
-                        console.warn('⚠️ API端点不存在（可能是后端未启动）');
-                    } else if (res.ok) {
-                        console.log('✅ Token有效');
-                    }
-                }).catch(err => {
-                    // 网络错误或其他错误，静默处理
-                    console.warn('⚠️ Token验证请求失败（可能是后端未启动）:', err.message);
-                });
-            } else {
-                console.log('ℹ️ 未检测到token');
-            }
-        })();
     </script>
 </head>
 

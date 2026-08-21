@@ -9,7 +9,7 @@
     "scripts": {
         "predev": "./scripts/check_node.sh",
         "dev": "vite",
-        "build": "vite build",
+        "build": "vite build && node scripts/generate-service-worker.mjs && node scripts/audit-production-endpoints.mjs",
         "preview": "vite preview",
         "test": "vitest run"
     },

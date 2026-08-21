@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, nextTick } from 'vue'
 import api from '@/services/api'
 import { createChatTransport } from '@/chat/transports'
+import { API_BASE_URL } from '@/config/apiBase'
 
 export const useChatStore = defineStore('chat', () => {
     const sessions = ref([])
@@ -537,7 +538,7 @@ export const useChatStore = defineStore('chat', () => {
             const formData = new FormData()
             formData.append('file', file)
 
-            console.log('📤 Uploading to:', import.meta.env.VITE_API_BASE + '/vision/upload')
+            console.log('📤 Uploading to:', API_BASE_URL + '/vision/upload')
             const response = await api.uploadImage(formData)
             console.log('✅ chatStore.uploadImage success:', response)
 

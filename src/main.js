@@ -4,6 +4,8 @@ import router from './router'
 import App from './App.vue'
 import './assets/styles/main.css'
 import 'highlight.js/styles/github-dark.css'
+import { API_BASE_URL } from './config/apiBase'
+import { registerServiceWorker } from './pwa/registerServiceWorker'
 // import { healthCheck } from './utils/healthCheck' // 已禁用: WebSocket 已监控连接
 
 // 🔧 尽早设置移动端视口高度，解决 100vh 在真机上的问题
@@ -79,3 +81,24 @@ window.addEventListener('unhandledrejection', (event) => {
 
 console.log('✅ App mounted and global error hooks installed')
 
+if (import.meta.env.PROD) {
+  registerServiceWorker().catch((error) => {
+    console.error('❌ SW registration failed:', error)
+  })
+}
+
+// 验证已有登录状态时始终使用统一 API base，避免请求落到前端域名。
+const storedToken = localStorage.getItem('token')
+if (storedToken) {
+  fetch(`${API_BASE_URL}/sessions`, {
+    headers: { Authorization: `Bearer ${storedToken}` }
+  }).then((response) => {
+    if (response.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      if (window.location.pathname !== '/login') window.location.href = '/login'
+    }
+  }).catch((error) => {
+    console.warn('⚠️ Token validation failed:', error.message)
+  })
+}

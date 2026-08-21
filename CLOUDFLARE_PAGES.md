@@ -19,13 +19,13 @@
 
 | 变量名          | 值                     |
 | --------------- | ---------------------- |
-| `VITE_API_BASE` | `https://api.leke.xyz` |
+| `VITE_API_BASE` | `https://api.xiaole.app` |
 | `NODE_VERSION`  | `20`                   |
 
 ## 部署后
 
-- 前端访问: `https://ai.leke.xyz` (自定义域名)
-- API 调用: `https://api.leke.xyz/*` (通过 Cloudflare Tunnel)
+- 前端访问: `https://xiaole.app` (自定义域名)
+- API 调用: `https://api.xiaole.app/*` (通过 Cloudflare Tunnel)
 
 ## 自定义域名 (可选)
 

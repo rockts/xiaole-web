@@ -1,6 +1,7 @@
 /**
  * 后端健康检查和自动重连
  */
+import { API_BASE_URL } from '@/config/apiBase'
 
 let checkInterval = null
 let isChecking = false
@@ -48,8 +49,7 @@ export const healthCheck = {
       const timeoutId = setTimeout(() => controller.abort(), 8000) // 增加超时时间到8秒
 
       // 使用简单的 API 端点进行健康检查
-      const apiBase = import.meta.env.VITE_API_BASE || ''
-      const response = await fetch(`${apiBase}/sessions`, {
+      const response = await fetch(`${API_BASE_URL}/sessions`, {
         method: 'GET',
         signal: controller.signal,
         headers: {

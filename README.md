@@ -33,7 +33,7 @@ npm run preview
 VITE_API_BASE=          # 留空，使用 Vite 代理
 
 # 生产环境 (.env.production)
-VITE_API_BASE=https://api.leke.xyz
+VITE_API_BASE=https://api.xiaole.app
 ```
 
 ## 🏗️ 项目结构
@@ -57,7 +57,7 @@ xiaole-web/
 
 项目部署到 **Cloudflare Pages**：
 
-- 生产地址: https://ai.leke.xyz
+- 生产地址: https://xiaole.app
 - 构建命令: `npm run build`
 - 输出目录: `dist`
 
