@@ -5,6 +5,7 @@ import KnowledgeView from '../../views/KnowledgeView.vue'
 vi.mock('../../services/api', () => ({
   default: {
     getHome: vi.fn(),
+    getKnowledgeProfile: vi.fn(),
     getRecentMemories: vi.fn(),
     searchMemories: vi.fn(),
     getDocuments: vi.fn(),
@@ -16,6 +17,7 @@ import api from '../../services/api'
 
 const profileFields = [
   { key: 'preferred_name', label: '称呼', value: '高老师', state: 'confirmed' },
+  { key: 'current_school', label: '当前学校', value: '新华门小学', state: 'confirmed' },
   { key: 'current_role', label: '当前岗位', value: '信息科技教师', state: 'confirmed' },
   { key: 'current_teaching_subjects', label: '当前任教学科', value: ['信息科技', '人工智能'], state: 'needs_confirmation' },
   { key: 'current_service_audiences', label: '当前服务对象', value: '中学生', state: 'historical' },
@@ -33,7 +35,7 @@ const documents = [
 ]
 
 const defaults = () => {
-  api.getHome.mockResolvedValue({ profile_status: { status: 'available', needs_confirmation_count: 1, fields: profileFields } })
+  api.getKnowledgeProfile.mockResolvedValue({ fields: profileFields })
   api.getRecentMemories.mockResolvedValue({ memory: memories })
   api.searchMemories.mockResolvedValue({ memories: [memories[0]] })
   api.getDocuments.mockResolvedValue({ success: true, documents })
@@ -77,6 +79,7 @@ describe('XiaoLe Phase C Knowledge', () => {
     const wrapper = await mountKnowledge()
     const about = wrapper.get('[data-knowledge-panel="about"]')
     expect(about.get('[data-test="profile-current"]').text()).toContain('信息科技教师')
+    expect(about.get('[data-test="profile-current"]').text()).toContain('新华门小学')
     expect(about.get('[data-test="profile-pending"]').text()).toContain('信息科技、人工智能')
     const historical = about.get('[data-test="profile-historical"]')
     expect(historical.attributes('open')).toBeUndefined()
@@ -141,13 +144,27 @@ describe('XiaoLe Phase C Knowledge', () => {
   })
 
   it('keeps memory and documents usable when Profile is unavailable', async () => {
-    api.getHome.mockRejectedValueOnce(new Error('profile unavailable'))
+    api.getKnowledgeProfile.mockRejectedValueOnce(new Error('profile unavailable'))
     const wrapper = await mountKnowledge()
     expect(wrapper.get('[data-test="profile-error"]').text()).toContain('暂时无法读取')
     await openTab(wrapper, 'known')
     expect(wrapper.findAll('[data-test="memory-item"]')).toHaveLength(2)
     await openTab(wrapper, 'documents')
     expect(wrapper.findAll('[data-test="document-item"]')).toHaveLength(2)
+  })
+
+  it('shows an honest empty state when the safe Profile has no displayable fields', async () => {
+    api.getKnowledgeProfile.mockResolvedValueOnce({ fields: [] })
+    const wrapper = await mountKnowledge()
+    expect(wrapper.text()).toContain('还没有已确认的当前资料')
+    expect(wrapper.find('[data-test="profile-error"]').exists()).toBe(false)
+  })
+
+  it('loads About me from the dedicated Knowledge Profile endpoint instead of Home', async () => {
+    const wrapper = await mountKnowledge()
+    expect(api.getKnowledgeProfile).toHaveBeenCalledTimes(1)
+    expect(api.getHome).not.toHaveBeenCalled()
+    expect(wrapper.get('[data-test="profile-current"]').text()).toContain('新华门小学')
   })
 
   it('does not invent a source when provenance is absent or unknown', async () => {

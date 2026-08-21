@@ -56,8 +56,8 @@ import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 
 const tabs = [{ id: 'about', label: '关于我' }, { id: 'known', label: '已知信息' }, { id: 'documents', label: '资料' }]
-const allowedProfileKeys = new Set(['preferred_name', 'current_role', 'current_teaching_subjects', 'current_service_audiences'])
-const profileLabels = { preferred_name: '我是谁', current_role: '当前工作 / 职业', current_teaching_subjects: '教育方向', current_service_audiences: '专业角色' }
+const allowedProfileKeys = new Set(['current_school', 'preferred_name', 'current_role', 'current_teaching_subjects', 'current_service_audiences', 'current_grade_levels', 'historical_school', 'historical_schools'])
+const profileLabels = { current_school: '当前学校', preferred_name: '我是谁', current_role: '当前工作 / 职业', current_teaching_subjects: '教育方向', current_service_audiences: '专业角色', current_grade_levels: '当前服务年级', historical_school: '历史学校', historical_schools: '历史学校' }
 const currentStates = new Set(['confirmed', 'current', 'confirmed_current'])
 const activeTab = ref('about')
 const profileFields = ref([]), profileLoading = ref(true), profileError = ref(false)
@@ -76,7 +76,7 @@ const memoryTopic = (tag) => { const value = String(tag || ''); if (value.starts
 const documentType = (type) => ({ pdf: 'PDF', doc: 'Word', docx: 'Word', txt: '文本', md: 'Markdown' }[String(type || '').toLowerCase()] || '资料')
 const extractMemories = (data) => Array.isArray(data) ? data : (data?.memory || data?.memories || [])
 
-const loadProfile = async () => { profileLoading.value = true; profileError.value = false; try { const home = await api.getHome(); if (home?.profile_status?.status !== 'available') throw new Error('profile unavailable'); profileFields.value = Array.isArray(home.profile_status.fields) ? home.profile_status.fields : [] } catch (_) { profileFields.value = []; profileError.value = true } finally { profileLoading.value = false } }
+const loadProfile = async () => { profileLoading.value = true; profileError.value = false; try { const profile = await api.getKnowledgeProfile(); profileFields.value = Array.isArray(profile?.fields) ? profile.fields : [] } catch (_) { profileFields.value = []; profileError.value = true } finally { profileLoading.value = false } }
 const loadMemories = async () => { memoryLoading.value = true; memoryError.value = false; try { memories.value = extractMemories(await api.getRecentMemories(720, 12)) } catch (_) { memories.value = []; memoryError.value = true } finally { memoryLoading.value = false } }
 const searchMemory = async () => { const query = memoryQuery.value.trim(); if (!query) return loadMemories(); memoryLoading.value = true; memoryError.value = false; try { memories.value = extractMemories(await api.searchMemories(query)) } catch (_) { memories.value = []; memoryError.value = true } finally { memoryLoading.value = false } }
 const loadDocuments = async () => { documentsLoading.value = true; documentsError.value = false; try { const response = await api.getDocuments(8); if (response?.success === false) throw new Error('documents unavailable'); const recent = (response?.documents || []).slice(0, 6); documents.value = await Promise.all(recent.map(async (document) => { try { const detail = await api.getDocument(document.id); return detail?.success && detail.document ? { ...document, summary: detail.document.summary, key_points: detail.document.key_points } : document } catch (_) { return document } })) } catch (_) { documents.value = []; documentsError.value = true } finally { documentsLoading.value = false } }
