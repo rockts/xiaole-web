@@ -1,7 +1,10 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { createSafeCore2Error, mapCore2Response } from '@/chat/core2Response'
-import { API_BASE_URL } from '@/config/apiBase'
+
+// API基础URL配置
+// 优先使用环境变量，否则使用空字符串（通过vite代理访问）
+const API_BASE_URL = import.meta.env.VITE_API_BASE || ''
 
 const api = axios.create({
     baseURL: API_BASE_URL,

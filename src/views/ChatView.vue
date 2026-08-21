@@ -1118,7 +1118,6 @@
 </template>
 
 <script setup>
-import { API_BASE_URL } from '@/config/apiBase'
 import {
   ref,
   computed,
@@ -2139,8 +2138,9 @@ const formatImagePath = (path) => {
   }
 
   // 生产环境：图片存储在后端服务器，需要拼接 API 基础 URL
-  if (API_BASE_URL) {
-    const fullUrl = `${API_BASE_URL}${normalizedPath}`;
+  const apiBase = import.meta.env.VITE_API_BASE;
+  if (apiBase) {
+    const fullUrl = `${apiBase}${normalizedPath}`;
     if (import.meta.env.DEV) {
       console.log(`[formatImagePath] 生产环境图片 URL: "${fullUrl}"`);
     }
