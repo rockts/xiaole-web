@@ -1,10 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { createSafeCore2Error, mapCore2Response } from '@/chat/core2Response'
-
-// API基础URL配置
-// 优先使用环境变量，否则使用空字符串（通过vite代理访问）
-const API_BASE_URL = import.meta.env.VITE_API_BASE || ''
+import { API_BASE_URL } from '@/config/apiBase'
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -326,31 +323,6 @@ export default {
 
     deleteTask(taskId) {
         return api.delete(`/tasks/${taskId}`)
-    },
-
-    // 提醒相关
-    getReminders(enabledOnly = false) {
-        return api.get('/reminders', { params: { enabled_only: enabledOnly } })
-    },
-
-    createReminder(data) {
-        return api.post('/reminders', data)
-    },
-
-    updateReminder(reminderId, data) {
-        return api.put(`/reminders/${reminderId}`, data)
-    },
-
-    deleteReminder(reminderId) {
-        return api.delete(`/reminders/${reminderId}`)
-    },
-
-    confirmReminder(reminderId) {
-        return api.post(`/reminders/${reminderId}/confirm`)
-    },
-
-    snoozeReminder(reminderId, minutes = 5) {
-        return api.post(`/reminders/${reminderId}/snooze`, null, { params: { minutes } })
     },
 
     // 行为分析相关

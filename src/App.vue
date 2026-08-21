@@ -17,14 +17,12 @@
         </router-view>
       </div>
     </div>
-    <ReminderNotification v-if="authStore.isAuthenticated" />
   </div>
 </template>
 
 <script setup>
 import SidebarModern from "@/components/layout/SidebarModern.vue";
 import TopBar from "@/components/layout/TopBar.vue";
-import ReminderNotification from "@/components/common/ReminderNotification.vue";
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from "vue";
 import { useWebSocket } from "@/composables/useWebSocket";
 import { useAuthStore } from "@/stores/auth";

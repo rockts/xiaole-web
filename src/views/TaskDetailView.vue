@@ -33,32 +33,6 @@
           </div>
         </div>
 
-        <!-- 关联提醒板块 -->
-        <div v-if="reminders.length > 0" class="reminders-section">
-          <h4>🔔 关联提醒 ({{ reminders.length }})</h4>
-          <div class="reminders-list">
-            <div
-              v-for="reminder in reminders"
-              :key="reminder.reminder_id"
-              class="reminder-item"
-              :class="{ disabled: !reminder.enabled }"
-            >
-              <div class="reminder-header">
-                <span class="reminder-time">{{
-                  formatReminderTime(reminder)
-                }}</span>
-                <span
-                  class="reminder-status"
-                  :class="{ active: reminder.enabled }"
-                >
-                  {{ reminder.enabled ? "启用" : "已禁用" }}
-                </span>
-              </div>
-              <div class="reminder-content">{{ reminder.content }}</div>
-            </div>
-          </div>
-        </div>
-
         <div class="steps-section">
           <h4>执行步骤 ({{ steps.length }})</h4>
           <div class="steps-list">
@@ -151,103 +125,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/services/api";
-
-const reminders = ref([]);
-const dueNotifiedIds = ref(new Set());
-let reminderTimer = null;
-
-async function loadReminders() {
-  try {
-    const enabledOnly = false;
-    const list = await api.getReminders(enabledOnly);
-    reminders.value = Array.isArray(list) ? list : list?.reminders || [];
-  } catch (e) {
-    console.error("加载提醒失败:", e);
-  }
-}
-
-function checkDueReminders(currentTaskId) {
-  const now = Date.now();
-  const related = reminders.value.filter(
-    (r) => r && r.task_id === currentTaskId
-  );
-  for (const r of related) {
-    // 期待字段：r.status === 'pending'，r.remind_at 或 r.due_time 为时间戳/ISO
-    const status = r.status || "pending";
-    const ts =
-      typeof r.remind_at === "string"
-        ? Date.parse(r.remind_at)
-        : typeof r.remind_at === "number"
-        ? r.remind_at
-        : typeof r.due_time === "string"
-        ? Date.parse(r.due_time)
-        : typeof r.due_time === "number"
-        ? r.due_time
-        : null;
-    if (!ts) continue;
-    if (status === "pending" && ts <= now && !dueNotifiedIds.value.has(r.id)) {
-      dueNotifiedIds.value.add(r.id);
-      // 前端提示：可替换为更优雅的 toast 组件
-      try {
-        // 使用浏览器通知（如果用户授权），否则使用 alert
-        if (window.Notification && Notification.permission === "granted") {
-          new Notification("提醒到期", {
-            body: r.title || "有一条提醒到期",
-            tag: `reminder-${r.id}`,
-          });
-        } else if (
-          window.Notification &&
-          Notification.permission !== "denied"
-        ) {
-          Notification.requestPermission().then((perm) => {
-            if (perm === "granted") {
-              new Notification("提醒到期", {
-                body: r.title || "有一条提醒到期",
-                tag: `reminder-${r.id}`,
-              });
-            } else {
-              alert(`🔔 提醒到期：${r.title || ""}`);
-            }
-          });
-        } else {
-          alert(`🔔 提醒到期：${r.title || ""}`);
-        }
-      } catch (e) {
-        alert(`🔔 提醒到期：${r.title || ""}`);
-      }
-    }
-  }
-}
-
-// 假设外部已提供当前 taskId（例如通过路由或 props）
-const currentTaskId = ref(null);
-
-onMounted(async () => {
-  await loadReminders();
-  // 初始检查
-  if (currentTaskId.value) checkDueReminders(currentTaskId.value);
-  // 每 30 秒轮询一次
-  reminderTimer = setInterval(async () => {
-    await loadReminders();
-    if (currentTaskId.value) checkDueReminders(currentTaskId.value);
-  }, 30000);
-});
-
-onBeforeUnmount(() => {
-  if (reminderTimer) {
-    clearInterval(reminderTimer);
-    reminderTimer = null;
-  }
-});
 
 const route = useRoute();
 const router = useRouter();
 const task = ref(null);
 const steps = ref([]);
-// 已上方定义 reminders，这里移除重复定义
 const loading = ref(false);
 
 const goBack = () => {
@@ -395,17 +280,6 @@ const loadTask = async () => {
       task.value = data.task;
       steps.value = data.steps || [];
 
-      // 加载关联提醒
-      try {
-        const allReminders = await api.getReminders(false); // false = 获取所有状态的提醒
-        if (allReminders && Array.isArray(allReminders)) {
-          reminders.value = allReminders.filter(
-            (r) => r.task_id === parseInt(taskId)
-          );
-        }
-      } catch (remError) {
-        console.error("Failed to load reminders:", remError);
-      }
     }
   } catch (error) {
     console.error("Failed to load task:", error);
@@ -565,68 +439,6 @@ watch(
   color: #c53030;
 }
 
-/* 提醒板块样式 */
-.reminders-section {
-  margin-bottom: 20px;
-  background: #fffaf0; /* 浅橙色背景 */
-  border: 1px solid #fbd38d;
-  border-radius: 8px;
-  padding: 15px;
-}
-
-.reminders-section h4 {
-  margin: 0 0 10px;
-  color: #c05621;
-  font-size: 15px;
-}
-
-.reminders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.reminder-item {
-  background: white;
-  border-radius: 6px;
-  padding: 10px;
-  border-left: 3px solid #ed8936;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.reminder-item.disabled {
-  border-left-color: #cbd5e0;
-  opacity: 0.7;
-}
-
-.reminder-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  font-size: 12px;
-}
-
-.reminder-time {
-  font-weight: bold;
-  color: #2d3748;
-}
-
-.reminder-status {
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: #edf2f7;
-  color: #718096;
-}
-
-.reminder-status.active {
-  background: #c6f6d5;
-  color: #2f855a;
-}
-
-.reminder-content {
-  font-size: 14px;
-  color: #4a5568;
-}
 
 /* 步骤样式优化 */
 .steps-section h4 {

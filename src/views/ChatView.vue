@@ -1118,6 +1118,7 @@
 </template>
 
 <script setup>
+import { API_BASE_URL } from '@/config/apiBase'
 import {
   ref,
   computed,
@@ -2138,9 +2139,8 @@ const formatImagePath = (path) => {
   }
 
   // 生产环境：图片存储在后端服务器，需要拼接 API 基础 URL
-  const apiBase = import.meta.env.VITE_API_BASE;
-  if (apiBase) {
-    const fullUrl = `${apiBase}${normalizedPath}`;
+  if (API_BASE_URL) {
+    const fullUrl = `${API_BASE_URL}${normalizedPath}`;
     if (import.meta.env.DEV) {
       console.log(`[formatImagePath] 生产环境图片 URL: "${fullUrl}"`);
     }
@@ -2788,17 +2788,13 @@ const sendMessage = async () => {
     });
   }
 
-  // 检测是否需要刷新提醒或任务列表
+  // 检测是否需要刷新任务列表
   // 检查用户输入和AI响应
   const lowerContent = (content || "").toLowerCase();
-  const needsReminderRefresh = /提醒|闹钟|reminder/.test(lowerContent);
   const needsTaskRefresh = /任务|待办|todo|task/.test(lowerContent);
 
   // 增加延迟到3秒，确保AI响应和工具执行都已完成
   setTimeout(() => {
-    if (needsReminderRefresh) {
-      window.dispatchEvent(new CustomEvent("refresh-reminders"));
-    }
     if (needsTaskRefresh) {
       window.dispatchEvent(new CustomEvent("refresh-tasks"));
     }

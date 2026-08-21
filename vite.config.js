@@ -24,7 +24,6 @@ export default defineConfig({
                         '/task/',
                         '/documents',
                         '/tools',
-                        '/reminders',
                         '/settings',
                         '/login',
                         '/share/'
@@ -97,7 +96,6 @@ export default defineConfig({
             '/analytics': { target: 'http://127.0.0.1:8000', changeOrigin: true },
             '/tasks': { target: 'http://127.0.0.1:8000', changeOrigin: true },
             '/tools': { target: 'http://127.0.0.1:8000', changeOrigin: true },
-            '/reminders': { target: 'http://127.0.0.1:8000', changeOrigin: true },
             '/feedback': { target: 'http://127.0.0.1:8000', changeOrigin: true },
             '/faces': { target: 'http://127.0.0.1:8000', changeOrigin: true },
             '/dashboard': { target: 'http://127.0.0.1:8000', changeOrigin: true },

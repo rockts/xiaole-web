@@ -59,38 +59,6 @@
         </svg>
       </button>
 
-      <!-- 提醒按钮 -->
-      <div class="reminder-container">
-        <button class="icon-btn" @click="toggleReminders" aria-label="提醒">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <span v-if="activeRemindersCount > 0" class="badge">{{
-            activeRemindersCount
-          }}</span>
-        </button>
-
-        <transition name="dropdown">
-          <div v-if="showReminders" class="reminder-dropdown">
-            <ReminderListPopup
-              :reminders="reminders"
-              :loading="loadingReminders"
-              :time-remaining-map="timeRemainingMap"
-              @close="closeReminders"
-              @delete="handleDeleteReminder"
-            />
-          </div>
-        </transition>
-      </div>
-
       <!-- 三点菜单按钮 -->
       <div v-if="isChatPage" class="more-menu-container">
         <button
@@ -192,8 +160,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "@/stores/chat";
 import { storeToRefs } from "pinia";
 import api from "@/services/api";
-import { useWebSocket } from "@/composables/useWebSocket";
-import ReminderListPopup from "@/components/common/ReminderListPopup.vue";
 import ShareDialog from "@/components/common/ShareDialog.vue";
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 
@@ -307,15 +273,6 @@ const isEditingTitle = ref(false);
 const editingTitle = ref("");
 const titleInput = ref(null);
 
-// 提醒相关状态
-const showReminders = ref(false);
-const reminders = ref([]);
-const loadingReminders = ref(false);
-const timeRemainingMap = ref({});
-let timerInterval = null;
-
-const activeRemindersCount = computed(() => reminders.value.length);
-
 // 判断当前回话是否有可分享内容
 const hasMessages = computed(() => (messages.value?.length || 0) > 0);
 const hasSharableSession = computed(() => {
@@ -327,93 +284,6 @@ const hasSharableSession = computed(() => {
   }
   return hasMessages.value;
 });
-
-const toggleReminders = () => {
-  showReminders.value = !showReminders.value;
-  if (showReminders.value) {
-    // 每次打开刷新一次，虽然有 websocket 自动更新
-    loadReminders();
-  }
-};
-
-const closeReminders = () => {
-  showReminders.value = false;
-};
-
-const updateTimeRemaining = () => {
-  const now = Date.now();
-  const map = {};
-
-  reminders.value.forEach((r) => {
-    if (!r.enabled || r.reminder_type !== "time") return;
-
-    let condition = r.trigger_condition;
-    if (typeof condition === "string") {
-      try {
-        condition = JSON.parse(condition);
-      } catch (e) {
-        return;
-      }
-    }
-    if (!condition || !condition.datetime) return;
-
-    let nextTime = new Date(condition.datetime).getTime();
-
-    if (r.repeat && r.repeat_interval) {
-      const interval = r.repeat_interval * 1000;
-      if (r.last_triggered) {
-        const last = new Date(r.last_triggered).getTime();
-        nextTime = last + interval;
-      }
-    }
-
-    const diff = nextTime - now;
-    if (diff < 0) {
-      map[r.reminder_id] = "即将触发";
-    } else {
-      const seconds = Math.floor(diff / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-
-      if (days > 0) {
-        map[r.reminder_id] = `${days}天 ${hours % 24}小时后`;
-      } else if (hours > 0) {
-        map[r.reminder_id] = `${hours}小时 ${minutes % 60}分后`;
-      } else if (minutes > 0) {
-        map[r.reminder_id] = `${minutes}分钟后`;
-      } else {
-        map[r.reminder_id] = `${seconds}秒后`;
-      }
-    }
-  });
-  timeRemainingMap.value = map;
-};
-
-const loadReminders = async () => {
-  try {
-    loadingReminders.value = true;
-    // 只获取启用的提醒
-    const data = await api.getReminders(true);
-    reminders.value = data.reminders || [];
-    updateTimeRemaining();
-    // 移除前端弹窗逻辑，依赖后端 WebSocket 推送
-  } catch (error) {
-    console.error("Failed to load reminders:", error);
-  } finally {
-    loadingReminders.value = false;
-  }
-};
-
-const handleDeleteReminder = async (id) => {
-  try {
-    await api.deleteReminder(id);
-    reminders.value = reminders.value.filter((r) => r.reminder_id !== id);
-  } catch (error) {
-    console.error("Failed to delete reminder:", error);
-    alert("删除失败");
-  }
-};
 
 const isChatPage = computed(() => route.path.startsWith("/chat"));
 
@@ -442,21 +312,11 @@ const startEditTitle = () => {
 };
 
 onMounted(() => {
-  // 顶栏常驻轮询：每 30 秒刷新提醒并检查是否到期
-  timerInterval = setInterval(() => {
-    loadReminders();
-  }, 30000);
-  // 初始加载
-  loadReminders();
   // 点击外部关闭菜单
   document.addEventListener("click", handleClickOutside);
 });
 
 onBeforeUnmount(() => {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
   document.removeEventListener("click", handleClickOutside);
 });
 
@@ -499,18 +359,12 @@ const toggleSidebar = () => {
 };
 
 const handleOutsideClick = (e) => {
-  if (!e.target.closest(".reminder-container")) {
-    showReminders.value = false;
-  }
   // 点击到更多之外则关闭
   const inMore =
     e.target.closest &&
     (e.target.closest(".more-container") || e.target.closest(".more-dropdown"));
   if (!inMore) showMore.value = false;
 };
-
-const { on } = useWebSocket();
-let wsUnsubscribe = null;
 
 onMounted(() => {
   const onResize = () => {
@@ -539,17 +393,6 @@ onMounted(() => {
 
   document.addEventListener("click", handleOutsideClick);
 
-  // Reminders init
-  loadReminders();
-  timerInterval = setInterval(updateTimeRemaining, 1000);
-  window.addEventListener("reminder-confirmed", loadReminders);
-  window.addEventListener("refresh-reminders", loadReminders);
-
-  wsUnsubscribe = on((data) => {
-    if (data.type === "reminder_created" || data.type === "reminder_updated") {
-      loadReminders();
-    }
-  });
 });
 
 // 同步网页标题为当前对话标题
@@ -572,10 +415,6 @@ watch(
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleOutsideClick);
-  window.removeEventListener("reminder-confirmed", loadReminders);
-  window.removeEventListener("refresh-reminders", loadReminders);
-  if (timerInterval) clearInterval(timerInterval);
-  if (wsUnsubscribe) wsUnsubscribe();
   if (window.__topbar_onResize) {
     window.removeEventListener("resize", window.__topbar_onResize);
     delete window.__topbar_onResize;
@@ -758,45 +597,6 @@ onBeforeUnmount(() => {
 .icon-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-}
-
-.reminder-container {
-  position: relative;
-}
-
-.reminder-btn {
-  position: relative;
-}
-
-.badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: var(--error);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  border: 2px solid var(--bg-primary);
-}
-
-.reminder-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 1000;
-}
-
-@media (max-width: 768px) {
-  .reminder-dropdown {
-    right: -60px;
-  }
 }
 
 /* 三点菜单容器 */

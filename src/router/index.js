@@ -51,12 +51,6 @@ const router = createRouter({
             meta: { title: '行为分析' }
         },
         {
-            path: '/reminders',
-            name: 'Reminders',
-            component: () => import('@/views/RemindersView.vue'),
-            meta: { title: '提醒' }
-        },
-        {
             path: '/tasks',
             name: 'Tasks',
             component: TasksView,
