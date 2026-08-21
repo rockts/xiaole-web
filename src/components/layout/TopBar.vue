@@ -1,5 +1,5 @@
 <template>
-  <div class="top-bar">
+  <div class="top-bar" :class="{ 'non-chat-page': !isChatPage }">
     <button
       class="mobile-menu-btn"
       @click="toggleSidebar"
@@ -433,6 +433,12 @@ onBeforeUnmount(() => {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+@media (min-width: 769px) {
+  .top-bar.non-chat-page {
+    display: none;
+  }
 }
 
 .mobile-menu-btn {

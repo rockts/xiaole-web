@@ -44,10 +44,11 @@
       <div class="settings-section">
         <h4>🤖 AI 设置</h4>
         <div class="form-group">
-          <label>对话引擎</label>
-          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="legacy" /> 小乐 1.0（稳定）</label>
-          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="core2" /> 小乐 2.0（实验）</label>
-          <small>2.0 使用新的 Brain / 乐知 / 小可架构，目前处于实验阶段。</small>
+          <label>对话模式</label>
+          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="core2" /> 标准对话</label>
+          <small>推荐用于日常对话、知识查询和行动。</small>
+          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="legacy" /> 兼容模式</label>
+          <small>用于附件、图片、语音和部分旧会话能力。</small>
         </div>
         <div class="form-group">
           <label>响应风格</label>
@@ -70,6 +71,14 @@
             启用语音输入
           </label>
         </div>
+      </div>
+
+      <div class="settings-section">
+        <details class="advanced-details">
+          <summary>高级与诊断</summary>
+          <p>仅在排查兼容问题时使用。当前内部模式：<code>{{ settings.chatMode }}</code></p>
+          <div class="advanced-links"><a href="/behavior">行为分析</a><a href="/tools">工具</a></div>
+        </details>
       </div>
 
       <div class="settings-section">

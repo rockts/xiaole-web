@@ -16,12 +16,14 @@
           <component :is="Component" />
         </router-view>
       </div>
+      <MobileBottomNav v-if="authStore.isAuthenticated" />
     </div>
   </div>
 </template>
 
 <script setup>
 import SidebarModern from "@/components/layout/SidebarModern.vue";
+import MobileBottomNav from "@/components/layout/MobileBottomNav.vue";
 import TopBar from "@/components/layout/TopBar.vue";
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from "vue";
 import { useWebSocket } from "@/composables/useWebSocket";
@@ -193,11 +195,13 @@ watch(
   .main-content {
     /* 移动端：TopBar 是 fixed，需要给内容留出顶部空间 */
     padding-top: var(--app-topbar-h, 52px);
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
   }
 
   /* 聊天页：由内容区自身做 top offset，避免任何覆盖/嵌套滚动副作用 */
   .main-content.is-chat-route {
     padding-top: 0;
+    padding-bottom: 0;
   }
   .content-wrapper {
     /* 移动端：确保内容填满且可滚动 */
@@ -214,7 +218,7 @@ watch(
     top: var(--app-topbar-h, 52px);
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom));
   }
 }
 </style>

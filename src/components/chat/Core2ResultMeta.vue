@@ -24,7 +24,8 @@
     </div>
 
     <div v-if="core2Error" class="core2-fallback">
-      <button type="button" @click="$emit('switch-legacy')">切回小乐 1.0</button>
+      <span>标准对话暂时不可用，可以尝试兼容模式。</span>
+      <button type="button" @click="$emit('switch-legacy')">尝试兼容模式</button>
     </div>
   </div>
 </template>
@@ -60,5 +61,6 @@ const safeSources = computed(() => props.sources.filter(source =>
 .source-card span, .source-card time { color: var(--text-secondary); }
 .action-card { display: grid; gap: 3px; padding: 9px 11px; border-radius: 8px; background: rgba(220, 38, 38, .08); }
 .action-card.success { background: rgba(22, 163, 74, .09); }
-.core2-fallback button { border: 1px solid var(--border-color); border-radius: 8px; padding: 7px 10px; background: var(--card-bg); cursor: pointer; }
+.core2-fallback { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); }
+.core2-fallback button { min-height: 44px; border: 1px solid var(--border-color); border-radius: 9px; padding: 8px 12px; background: var(--card-bg); color: var(--text-primary); cursor: pointer; }
 </style>

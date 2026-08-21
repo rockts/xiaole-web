@@ -33,7 +33,7 @@
     </div>
 
     <!-- 会话加载错误提示 -->
-    <div v-if="chatMode === 'core2'" class="core2-mode-notice">小乐 2.0 · 实验</div>
+    <div v-if="chatMode === 'legacy'" class="compatibility-mode-label" data-testid="compatibility-mode-label">兼容模式</div>
     <div v-if="sessionLoadError" class="session-error-message">
       <div class="error-icon">⚠️</div>
       <h2 class="error-title">无法加载会话</h2>
@@ -1105,6 +1105,22 @@
       @close="showShareDialog = false"
     />
 
+    <div
+      v-if="compatibilityPrompt"
+      class="compatibility-prompt-backdrop"
+      role="presentation"
+      @click.self="closeCompatibilityPrompt"
+    >
+      <section class="compatibility-prompt" role="dialog" aria-modal="true" aria-labelledby="compatibility-prompt-title" @keydown.esc.stop="closeCompatibilityPrompt">
+        <h3 id="compatibility-prompt-title">这个功能需要使用兼容模式</h3>
+        <p>{{ compatibilityPrompt }}目前由兼容模式提供。切换后请再次使用这个功能。</p>
+        <div class="compatibility-prompt-actions">
+          <button ref="compatibilityCancelButton" type="button" class="secondary" @click="closeCompatibilityPrompt">暂不切换</button>
+          <button type="button" data-testid="confirm-compatibility-mode" @click="confirmCompatibilityMode">切换到兼容模式</button>
+        </div>
+      </section>
+    </div>
+
     <!-- 语音模式对话框 -->
     <VoiceModeDialog
       ref="voiceModeDialogRef"
@@ -1151,6 +1167,27 @@ const onChatModeChange = (event) => { chatMode.value = event.detail === "core2" 
 const switchToLegacy = () => {
   chatMode.value = writeChatMode("legacy");
   window.dispatchEvent(new CustomEvent("xiaole-chat-mode-change", { detail: "legacy" }));
+};
+const compatibilityPrompt = ref("");
+const compatibilityCancelButton = ref(null);
+let compatibilityPromptTrigger = null;
+const requestCompatibilityMode = (capability) => {
+  if (chatMode.value !== "core2") return false;
+  compatibilityPromptTrigger = document.activeElement;
+  compatibilityPrompt.value = capability;
+  nextTick(() => compatibilityCancelButton.value?.focus());
+  return true;
+};
+const closeCompatibilityPrompt = () => {
+  compatibilityPrompt.value = "";
+  nextTick(() => {
+    compatibilityPromptTrigger?.focus?.();
+    compatibilityPromptTrigger = null;
+  });
+};
+const confirmCompatibilityMode = () => {
+  switchToLegacy();
+  closeCompatibilityPrompt();
 };
 const { messages, sessionInfo, isTyping } = storeToRefs(chatStore);
 const isEmptyChat = computed(
@@ -2633,13 +2670,7 @@ const sendMessage = async () => {
   if ((!content && !pendingFile.value) || isTyping.value) return;
 
   if (chatMode.value === "core2" && pendingFile.value) {
-    messages.value.push({
-      id: `core2-attachment-${Date.now()}`,
-      role: "assistant",
-      content: "小乐 2.0 实验模式暂不支持附件，请移除附件或切回小乐 1.0。",
-      status: "done",
-      core2: true,
-    });
+    requestCompatibilityMode(pendingFile.value.type?.startsWith("image/") ? "图片" : "附件");
     return;
   }
 
@@ -2816,12 +2847,18 @@ const handleMainButton = () => {
 };
 
 const handleUpload = () => {
+  if (requestCompatibilityMode("附件和图片")) return;
   fileInput.value?.click();
 };
 
 const handleFileChange = async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
+
+  if (requestCompatibilityMode(file.type.startsWith("image/") ? "图片" : "附件")) {
+    e.target.value = "";
+    return;
+  }
 
   // 检查文件类型
   if (file.type.startsWith("image/")) {
@@ -3137,6 +3174,7 @@ function writeString(view, offset, string) {
 }
 
 const handleVoiceInput = async () => {
+  if (requestCompatibilityMode("语音")) return;
   if (recognition.value) {
     if (isRecording.value) {
       recognition.value.stop();
@@ -3211,6 +3249,7 @@ const handleVoiceInput = async () => {
 };
 
 const toggleVoiceMode = () => {
+  if (requestCompatibilityMode("语音模式")) return;
   const next = !showVoiceMode.value;
   onVoiceModeVisibleChange(next);
 };
@@ -3576,6 +3615,7 @@ const extractReferences = (content) => {
 };
 
 const getDisplayContent = (message) => {
+  if (message.core2Error) return "标准对话暂时不可用。";
   // 如果有结构化的 search_results，我们仍然尝试移除文本中的引用部分，避免重复
   // 如果没有 search_results，我们也移除引用部分，因为会渲染成卡片
   const { main } = extractReferences(message.content);
@@ -3659,6 +3699,59 @@ const feedbackMessage = async (message, type) => {
   height: 100%;
   position: relative;
   background: var(--bg-primary);
+}
+.compatibility-mode-label {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 20;
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--input-bg);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+.compatibility-prompt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(24, 22, 19, 0.28);
+  backdrop-filter: blur(3px);
+}
+.compatibility-prompt {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: var(--card-bg);
+  box-shadow: 0 18px 55px rgba(30, 25, 20, 0.18);
+}
+.compatibility-prompt h3 { margin: 0 0 8px; font-size: 18px; color: var(--text-primary); }
+.compatibility-prompt p { margin: 0; color: var(--text-secondary); line-height: 1.65; }
+.compatibility-prompt-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.compatibility-prompt-actions button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  cursor: pointer;
+}
+.compatibility-prompt-actions button.secondary {
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+}
+@media (max-width: 480px) {
+  .compatibility-prompt-backdrop { align-items: end; padding: 12px 12px calc(72px + env(safe-area-inset-bottom)); }
+  .compatibility-prompt { border-radius: 18px; }
+  .compatibility-prompt-actions { flex-direction: column-reverse; }
+  .compatibility-prompt-actions button { width: 100%; }
 }
 /* 欢迎消息 */
 .welcome-message {
@@ -5030,7 +5123,7 @@ const feedbackMessage = async (message, type) => {
   }
 
   .chat-view.empty .input-container {
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
@@ -5073,7 +5166,7 @@ const feedbackMessage = async (message, type) => {
   }
 
   .input-container {
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;

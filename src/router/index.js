@@ -8,6 +8,9 @@ import TaskDetailView from '@/views/TaskDetailView.vue'
 import DocumentsView from '@/views/DocumentsView.vue'
 import ToolsView from '@/views/ToolsView.vue'
 import HomeView from '@/views/HomeView.vue'
+import KnowledgeView from '@/views/KnowledgeView.vue'
+import ActionView from '@/views/ActionView.vue'
+import ConversationsView from '@/views/ConversationsView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -21,7 +24,7 @@ const router = createRouter({
         },
         {
             path: '/',
-            redirect: '/chat'
+            redirect: '/home'
         },
         {
             path: '/home', name: 'Home', component: HomeView, meta: { title: '首页' }
@@ -31,6 +34,15 @@ const router = createRouter({
             name: 'Chat',
             component: ChatView,
             meta: { title: '对话' }
+        },
+        {
+            path: '/knowledge', name: 'Knowledge', component: KnowledgeView, meta: { title: '知识' }
+        },
+        {
+            path: '/action', name: 'Action', component: ActionView, meta: { title: '行动' }
+        },
+        {
+            path: '/conversations', name: 'Conversations', component: ConversationsView, meta: { title: '全部对话' }
         },
         {
             path: '/share/:id',
@@ -96,7 +108,7 @@ router.beforeEach((to, from, next) => {
     if (to.name !== 'Login' && !authStore.isAuthenticated) {
         next({ name: 'Login' })
     } else if (to.name === 'Login' && authStore.isAuthenticated) {
-        next({ name: 'Chat' })
+        next({ name: 'Home' })
     } else {
         next()
     }

@@ -56,8 +56,8 @@ const authStore = useAuthStore();
 const handleLogin = async () => {
   const success = await authStore.login(username.value, password.value);
   if (success) {
-    // 登录后直接进入聊天页，避免重定向卡住
-    router.replace({ name: "Chat" });
+    // 登录后进入首页，按需再开始对话
+    router.replace({ name: "Home" });
   }
 };
 </script>
