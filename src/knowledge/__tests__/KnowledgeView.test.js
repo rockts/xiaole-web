@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import KnowledgeView from '../../views/KnowledgeView.vue'
+
+const routeState = vi.hoisted(() => ({ query: {} }))
+vi.mock('vue-router', () => ({ useRoute: () => routeState }))
 
 vi.mock('../../services/api', () => ({
   default: {
@@ -10,6 +14,8 @@ vi.mock('../../services/api', () => ({
     searchMemories: vi.fn(),
     getDocuments: vi.fn(),
     getDocument: vi.fn()
+    ,getProfileConfirmations: vi.fn()
+    ,submitProfileConfirmation: vi.fn()
   }
 }))
 
@@ -34,6 +40,13 @@ const documents = [
   { id: 9, original_filename: '课程笔记.md', file_type: 'md', status: 'processing', created_at: '2026-08-19T08:00:00Z' }
 ]
 
+const confirmationItems = [
+  { key: 'current_teaching_subjects', label: '当前任教学科', state: 'needs_confirmation', candidate_value: ['信息科技'], input_type: 'multi_text', options: [], version: 'a'.repeat(64) },
+  { key: 'current_service_targets', label: '当前服务对象', state: 'needs_confirmation', candidate_value: null, input_type: 'multi_text', options: [], version: 'b'.repeat(64) },
+  { key: 'current_role', label: '当前岗位', state: 'needs_confirmation', candidate_value: '教师', input_type: 'text', options: [], version: 'c'.repeat(64) },
+  { key: 'preferred_name', label: '希望小乐怎么称呼你', state: 'needs_confirmation', candidate_value: null, input_type: 'text', options: [], version: 'd'.repeat(64) }
+]
+
 const defaults = () => {
   api.getKnowledgeProfile.mockResolvedValue({ fields: profileFields })
   api.getRecentMemories.mockResolvedValue({ memory: memories })
@@ -42,11 +55,15 @@ const defaults = () => {
   api.getDocument.mockImplementation(async (id) => id === 8
     ? { success: true, document: { ...documents[0], summary: '这份资料梳理了教育数字化的长期方向。', key_points: ['关注教师成长', '推进人工智能教育'] } }
     : { success: true, document: documents[1] })
+  api.getProfileConfirmations.mockResolvedValue({ schema_version: 1, items: confirmationItems })
+  api.submitProfileConfirmation.mockResolvedValue({ schema_version: 1, key: 'current_role', state: 'confirmed', version: 'e'.repeat(64) })
 }
 
 const mountKnowledge = async () => {
   const wrapper = mount(KnowledgeView, {
+    attachTo: document.body,
     global: {
+      plugins: [createPinia()],
       stubs: {
         RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }
       }
@@ -65,6 +82,10 @@ const openTab = async (wrapper, name) => {
 describe('XiaoLe Phase C Knowledge', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    document.body.innerHTML = ''
+    routeState.query = {}
+    setActivePinia(createPinia())
+    HTMLElement.prototype.scrollIntoView = vi.fn()
     defaults()
   })
 
@@ -173,5 +194,41 @@ describe('XiaoLe Phase C Knowledge', () => {
     const items = wrapper.findAll('[data-test="memory-item"]')
     expect(items[0].text()).not.toContain('来源')
     expect(items[1].text()).toContain('来自乐知资料')
+  })
+
+  it('renders four governed confirmation cards without leaking public or storage keys', async () => {
+    const wrapper = await mountKnowledge()
+    const section = wrapper.get('[data-test="profile-confirmations"]')
+    expect(section.findAll('[data-test="confirmation-card"]')).toHaveLength(4)
+    expect(section.text()).toContain('希望小乐怎么称呼你')
+    expect(section.text()).not.toMatch(/preferred_name|current_student_groups|storage_key/)
+  })
+
+  it('maps the Home query to About me and focuses the confirmation section', async () => {
+    routeState.query = { tab: 'profile', section: 'confirmations' }
+    const wrapper = await mountKnowledge()
+    expect(wrapper.get('[data-knowledge-tab="about"]').attributes('aria-selected')).toBe('true')
+    const section = wrapper.get('[data-test="profile-confirmations"]')
+    expect(document.activeElement).toBe(section.element)
+    expect(section.element.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+  })
+
+  it('reloads the formal Profile and confirmation list after a successful action', async () => {
+    api.getProfileConfirmations
+      .mockResolvedValueOnce({ schema_version: 1, items: confirmationItems })
+      .mockResolvedValueOnce({ schema_version: 1, items: confirmationItems.filter((item) => item.key !== 'current_role') })
+    const wrapper = await mountKnowledge()
+    const roleCard = wrapper.findAll('[data-test="confirmation-card"]').find((card) => card.text().includes('当前岗位'))
+    await roleCard.get('[data-test="confirm-candidate"]').trigger('click')
+    await flushPromises()
+    expect(api.getProfileConfirmations).toHaveBeenCalledTimes(2)
+    expect(api.getKnowledgeProfile).toHaveBeenCalledTimes(2)
+    expect(wrapper.findAll('[data-test="confirmation-card"]')).toHaveLength(3)
+  })
+
+  it('shows the calm completed state when no confirmations remain', async () => {
+    api.getProfileConfirmations.mockResolvedValueOnce({ schema_version: 1, items: [] })
+    const wrapper = await mountKnowledge()
+    expect(wrapper.get('[data-test="profile-confirmations-complete"]').text()).toContain('目前没有需要确认的个人资料')
   })
 })

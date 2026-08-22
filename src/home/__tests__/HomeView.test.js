@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import HomeView from '../../views/HomeView.vue'
 
 const push = vi.fn()
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
-vi.mock('../../services/api', () => ({ default: { getHome: vi.fn() } }))
+vi.mock('../../services/api', () => ({ default: { getHome: vi.fn(), getProfileConfirmations: vi.fn() } }))
 import api from '../../services/api'
 
 const recommendation = (index = 1) => ({ stars: 5, title: `推荐事项 ${index}`, source: '中国科协', published_at: '2026-08-01', deadline: '2026-10-20', reason: '与你关注的科技教育方向有关', eligibility: { self: 'unknown', students: 'eligible', school: 'possible' }, action: { label: '查看详情' }, open_url: index === 1 ? 'https://example.com/item' : null })
@@ -22,10 +23,18 @@ const model = {
 }
 
 const cloneModel = () => structuredClone(model)
-const mountHome = async (overrides = {}) => { api.getHome.mockResolvedValue(Object.assign(cloneModel(), overrides)); const wrapper = mount(HomeView); await flushPromises(); return wrapper }
+const confirmationItems = Array.from({ length: 4 }, (_, index) => ({ key: `field-${index}`, label: `资料 ${index}`, state: 'needs_confirmation', candidate_value: null, input_type: 'text', options: [], version: 'a'.repeat(64) }))
+const mountHome = async (overrides = {}, confirmations = confirmationItems) => {
+  setActivePinia(createPinia())
+  api.getHome.mockResolvedValue(Object.assign(cloneModel(), overrides))
+  api.getProfileConfirmations.mockResolvedValue({ schema_version: 1, items: confirmations })
+  const wrapper = mount(HomeView)
+  await flushPromises()
+  return wrapper
+}
 
 describe('Home 2.0 productization', () => {
-  beforeEach(() => { vi.clearAllMocks(); localStorage.clear() })
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); setActivePinia(createPinia()) })
 
   it('renders the seven product sections in the approved order', async () => {
     const wrapper = await mountHome()
@@ -57,13 +66,27 @@ describe('Home 2.0 productization', () => {
     expect(localStorage.getItem('xiaole_settings')).toBe('{"chatMode":"core2"}')
   })
 
-  it('keeps profile confirmation collapsed and hides unavailable profile', async () => {
+  it('keeps profile confirmation collapsed and uses confirmations even when cached Home profile is unavailable', async () => {
     const wrapper = await mountHome()
     const profile = wrapper.get('[data-home-section="profile"]')
-    expect(profile.text()).toContain('为了让推荐更准确，还有 2 项资料需要确认')
+    expect(profile.text()).toContain('为了让推荐更准确，还有 4 项资料需要确认')
     expect(profile.get('details').attributes('open')).toBeUndefined()
     const unavailable = await mountHome({ profile_status: { status: 'unavailable', needs_confirmation_count: 0, fields: [] } })
-    expect(unavailable.find('[data-home-section="profile"]').exists()).toBe(false)
+    expect(unavailable.find('[data-home-section="profile"]').exists()).toBe(true)
+  })
+
+  it('uses the canonical confirmation count and navigates View to the confirmation section', async () => {
+    const wrapper = await mountHome({ profile_status: { status: 'available', needs_confirmation_count: 99, fields: [] } })
+    const profile = wrapper.get('[data-home-section="profile"]')
+    expect(profile.text()).toContain('还有 4 项资料需要确认')
+    expect(profile.text()).not.toContain('99')
+    await profile.get('[data-test="view-profile-confirmations"]').trigger('click')
+    expect(push).toHaveBeenCalledWith('/knowledge?tab=profile&section=confirmations')
+  })
+
+  it('hides the pending prompt when the canonical confirmation list is empty', async () => {
+    const wrapper = await mountHome({}, [])
+    expect(wrapper.find('[data-home-section="profile"]').exists()).toBe(false)
   })
 
   it('limits recent conversations to four and links to the complete list', async () => {

@@ -117,6 +117,14 @@ export default {
     getKnowledgeProfile() {
         return api.get('/api/v2/knowledge/profile', { retryCount: MAX_RETRIES })
     },
+    getProfileConfirmations() {
+        return api.get('/api/v2/profile/confirmations', { retryCount: MAX_RETRIES })
+    },
+    submitProfileConfirmation(fieldKey, command, idempotencyKey) {
+        return api.post(`/api/v2/profile/confirmations/${encodeURIComponent(fieldKey)}`, command, {
+            headers: { 'Idempotency-Key': idempotencyKey }
+        })
+    },
     // 会话相关
     getSessions() {
         return api.get('/sessions', { params: { all_sessions: true, _t: Date.now() } })
