@@ -126,6 +126,12 @@ export default {
     getKnowledgeProfile() {
         return api.get('/api/v2/knowledge/profile', { retryCount: MAX_RETRIES })
     },
+    getKnowledgeFacts() {
+        return api.get('/api/v2/knowledge/facts', { retryCount: MAX_RETRIES })
+    },
+    getKnowledgeDocuments(limit = 8) {
+        return api.get('/api/v2/knowledge/documents', { params: { limit }, retryCount: MAX_RETRIES })
+    },
     getProfileConfirmations() {
         return api.get('/api/v2/profile/confirmations', { retryCount: MAX_RETRIES })
     },

@@ -10,6 +10,8 @@ vi.mock('../../services/api', () => ({
   default: {
     getHome: vi.fn(),
     getKnowledgeProfile: vi.fn(),
+    getKnowledgeFacts: vi.fn(),
+    getKnowledgeDocuments: vi.fn(),
     getRecentMemories: vi.fn(),
     searchMemories: vi.fn(),
     getDocuments: vi.fn(),
@@ -30,14 +32,18 @@ const profileFields = [
   { key: 'secret', label: 'Secret', value: 'should-not-render', state: 'confirmed', path: '/private/profile.json' }
 ]
 
-const memories = [
-  { id: 1, content: '持续推进小乐产品化。', tag: 'project', timestamp: '2026-08-21T08:00:00Z', source: '/private/memory.json', confidence: 0.98 },
-  { id: 2, content: '资料中记录了教育数字化方向。', tag: 'document:教育规划.pdf', timestamp: '2026-08-20T08:00:00Z' }
-]
+const facts = {
+  current: [
+    { key: 'current_role', label: '当前工作 / 职业', value: '信息科技教师', state: 'confirmed', updated_at: '2026-08-21T08:00:00Z', current_or_historical: 'current' }
+  ],
+  historical: [
+    { key: 'historical_school', label: '历史学校', value: ['烟铺小学'], state: 'historical', current_or_historical: 'historical' }
+  ]
+}
 
 const documents = [
-  { id: 8, original_filename: '教育规划.pdf', file_type: 'pdf', status: 'completed', created_at: '2026-08-20T08:00:00Z' },
-  { id: 9, original_filename: '课程笔记.md', file_type: 'md', status: 'processing', created_at: '2026-08-19T08:00:00Z' }
+  { id: 8, title: '教育规划.pdf', file_type: 'pdf', processing_status: 'completed', created_at: '2026-08-20T08:00:00Z', source_system: 'xiaole_upload', source_label: '来自小乐上传', summary_available: true, open_available: true },
+  { id: 9, title: '课程笔记.md', file_type: 'md', processing_status: 'processing', created_at: '2026-08-19T08:00:00Z', source_system: 'xiaole_upload', source_label: '来自小乐上传', summary_available: false, open_available: false }
 ]
 
 const confirmationItems = [
@@ -49,12 +55,12 @@ const confirmationItems = [
 
 const defaults = () => {
   api.getKnowledgeProfile.mockResolvedValue({ fields: profileFields })
-  api.getRecentMemories.mockResolvedValue({ memory: memories })
-  api.searchMemories.mockResolvedValue({ memories: [memories[0]] })
-  api.getDocuments.mockResolvedValue({ success: true, documents })
-  api.getDocument.mockImplementation(async (id) => id === 8
-    ? { success: true, document: { ...documents[0], summary: '这份资料梳理了教育数字化的长期方向。', key_points: ['关注教师成长', '推进人工智能教育'] } }
-    : { success: true, document: documents[1] })
+  api.getKnowledgeFacts.mockResolvedValue(facts)
+  api.getKnowledgeDocuments.mockResolvedValue({ documents })
+  api.getRecentMemories.mockRejectedValue(new Error('Legacy memory must not be called'))
+  api.searchMemories.mockRejectedValue(new Error('Legacy memory search must not be called'))
+  api.getDocuments.mockRejectedValue(new Error('Legacy documents must not be called'))
+  api.getDocument.mockRejectedValue(new Error('Legacy document detail must not enrich the list'))
   api.getProfileConfirmations.mockResolvedValue({ schema_version: 1, items: confirmationItems })
   api.submitProfileConfirmation.mockResolvedValue({ schema_version: 1, key: 'current_role', state: 'confirmed', version: 'e'.repeat(64) })
 }
@@ -109,67 +115,73 @@ describe('XiaoLe Phase C Knowledge', () => {
     expect(about.text()).not.toMatch(/Secret|private\/profile|confidence|subject/i)
   })
 
-  it('keeps memory useful and searchable without exposing internal provenance', async () => {
+  it('shows only safe current facts and keeps historical facts collapsed', async () => {
     const wrapper = await mountKnowledge()
     await openTab(wrapper, 'known')
     const panel = wrapper.get('[data-knowledge-panel="known"]')
-    expect(panel.findAll('[data-test="memory-item"]')).toHaveLength(2)
-    expect(panel.text()).toContain('持续推进小乐产品化。')
-    expect(panel.text()).toContain('项目')
-    expect(panel.text()).toContain('来自乐知资料')
-    expect(panel.text()).not.toMatch(/private\/memory|0\.98|confidence/i)
-    await panel.get('[data-test="memory-search-input"]').setValue('小乐')
-    await panel.get('form').trigger('submit')
-    await flushPromises()
-    expect(api.searchMemories).toHaveBeenCalledWith('小乐')
-    expect(panel.findAll('[data-test="memory-item"]')).toHaveLength(1)
+    expect(panel.findAll('[data-test="fact-item"]')).toHaveLength(1)
+    expect(panel.text()).toContain('信息科技教师')
+    const historical = panel.get('[data-test="facts-historical"]')
+    expect(historical.attributes('open')).toBeUndefined()
+    expect(historical.text()).toContain('烟铺小学')
+    expect(panel.find('[data-test="memory-search-input"]').exists()).toBe(false)
+    expect(panel.find('[data-test="manage-memory"]').exists()).toBe(false)
+    expect(api.getKnowledgeFacts).toHaveBeenCalledTimes(1)
+    expect(api.getRecentMemories).not.toHaveBeenCalled()
+    expect(api.searchMemories).not.toHaveBeenCalled()
   })
 
-  it('shows independent memory empty and failure states with a management escape hatch', async () => {
-    api.getRecentMemories.mockResolvedValueOnce({ memory: [] })
+  it('shows safe facts empty and independent failure states without fallback', async () => {
+    api.getKnowledgeFacts.mockResolvedValueOnce({ current: [], historical: [] })
     const empty = await mountKnowledge()
     await openTab(empty, 'known')
-    expect(empty.get('[data-test="memory-empty"]').text()).toContain('还没有保存')
-    expect(empty.get('[data-test="manage-memory"]').attributes('href')).toBe('/memory')
+    expect(empty.get('[data-test="facts-empty"]').text()).toContain('还没有已确认的已知信息')
 
-    api.getRecentMemories.mockRejectedValueOnce(new Error('offline'))
+    api.getKnowledgeFacts.mockRejectedValueOnce(new Error('offline'))
     const failed = await mountKnowledge()
     await openTab(failed, 'known')
-    expect(failed.get('[data-test="memory-error"]').text()).toContain('暂时无法读取')
+    expect(failed.get('[data-test="facts-error"]').text()).toContain('暂时无法读取')
     expect(failed.find('[data-knowledge-panel="about"]').exists()).toBe(false)
+    expect(api.getRecentMemories).not.toHaveBeenCalled()
   })
 
-  it('shows recent documents with real detail summaries and links to existing detail routes', async () => {
+  it('shows safe projected documents with true source and conditional open links', async () => {
     const wrapper = await mountKnowledge()
     await openTab(wrapper, 'documents')
     const panel = wrapper.get('[data-knowledge-panel="documents"]')
     expect(panel.findAll('[data-test="document-item"]')).toHaveLength(2)
     expect(panel.text()).toContain('教育规划.pdf')
-    expect(panel.text()).toContain('这份资料梳理了教育数字化的长期方向。')
-    expect(panel.text()).toContain('关注教师成长')
+    expect(panel.text()).toContain('来自小乐上传')
+    expect(panel.text()).toContain('已完成')
+    expect(panel.text()).toContain('处理中')
+    expect(panel.text()).not.toContain('来自乐知资料')
     expect(panel.get('[data-test="document-detail"]').attributes('href')).toBe('/documents/8')
+    expect(panel.findAll('[data-test="document-detail"]')).toHaveLength(1)
     expect(panel.get('[data-test="all-documents"]').attributes('href')).toBe('/documents')
+    expect(api.getKnowledgeDocuments).toHaveBeenCalledWith(8)
+    expect(api.getDocuments).not.toHaveBeenCalled()
+    expect(api.getDocument).not.toHaveBeenCalled()
   })
 
   it('shows independent document empty and failure states', async () => {
-    api.getDocuments.mockResolvedValueOnce({ success: true, documents: [] })
+    api.getKnowledgeDocuments.mockResolvedValueOnce({ documents: [] })
     const empty = await mountKnowledge()
     await openTab(empty, 'documents')
     expect(empty.get('[data-test="documents-empty"]').text()).toContain('还没有资料')
 
-    api.getDocuments.mockRejectedValueOnce(new Error('offline'))
+    api.getKnowledgeDocuments.mockRejectedValueOnce(new Error('offline'))
     const failed = await mountKnowledge()
     await openTab(failed, 'documents')
     expect(failed.get('[data-test="documents-error"]').text()).toContain('暂时无法读取')
     expect(failed.get('[data-test="upload-document"]').attributes('href')).toBe('/documents')
   })
 
-  it('keeps memory and documents usable when Profile is unavailable', async () => {
+  it('keeps safe facts and documents usable when Profile is unavailable', async () => {
     api.getKnowledgeProfile.mockRejectedValueOnce(new Error('profile unavailable'))
     const wrapper = await mountKnowledge()
     expect(wrapper.get('[data-test="profile-error"]').text()).toContain('暂时无法读取')
     await openTab(wrapper, 'known')
-    expect(wrapper.findAll('[data-test="memory-item"]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-test="fact-item"]')).toHaveLength(1)
     await openTab(wrapper, 'documents')
     expect(wrapper.findAll('[data-test="document-item"]')).toHaveLength(2)
   })
@@ -188,12 +200,12 @@ describe('XiaoLe Phase C Knowledge', () => {
     expect(wrapper.get('[data-test="profile-current"]').text()).toContain('新华门小学')
   })
 
-  it('does not invent a source when provenance is absent or unknown', async () => {
+  it('never renders the retired Lezhi source copy', async () => {
     const wrapper = await mountKnowledge()
     await openTab(wrapper, 'known')
-    const items = wrapper.findAll('[data-test="memory-item"]')
-    expect(items[0].text()).not.toContain('来源')
-    expect(items[1].text()).toContain('来自乐知资料')
+    expect(wrapper.text()).not.toContain('来自乐知资料')
+    await openTab(wrapper, 'documents')
+    expect(wrapper.text()).not.toContain('来自乐知资料')
   })
 
   it('renders four governed confirmation cards without leaking public or storage keys', async () => {
