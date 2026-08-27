@@ -42,6 +42,12 @@ const router = createRouter({
             path: '/action', name: 'Action', component: ActionView, meta: { title: '行动' }
         },
         {
+            path: '/intelligence', name: 'Intelligence', component: () => import('@/views/IntelligenceView.vue'), meta: { title: '通知与情报' }
+        },
+        {
+            path: '/intelligence/:eventId', name: 'IntelligenceDetail', component: () => import('@/views/IntelligenceDetailView.vue'), meta: { title: '通知详情' }
+        },
+        {
             path: '/conversations', name: 'Conversations', component: ConversationsView, meta: { title: '全部对话' }
         },
         {

@@ -12,7 +12,7 @@ describe('Phase A route compatibility', () => {
     expect(paths).toEqual(expect.arrayContaining([
       '/home', '/chat/:sessionId?', '/knowledge', '/action', '/conversations',
       '/memory', '/behavior', '/tasks', '/task/:id', '/documents',
-      '/documents/:id', '/tools', '/settings'
+      '/documents/:id', '/tools', '/settings', '/intelligence', '/intelligence/:eventId'
     ]))
   })
 })

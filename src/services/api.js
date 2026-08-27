@@ -114,6 +114,15 @@ export default {
     getHome() {
         return api.get('/api/v2/home', { retryCount: MAX_RETRIES })
     },
+    getIntelligenceInbox(filter = 'all') {
+        return api.get('/api/v2/intelligence/inbox', { params: { filter }, retryCount: MAX_RETRIES })
+    },
+    getIntelligenceInboxDetail(eventId) {
+        return api.get(`/api/v2/intelligence/inbox/${encodeURIComponent(eventId)}`, { retryCount: MAX_RETRIES })
+    },
+    markIntelligenceRead(eventId) {
+        return api.put(`/api/v2/intelligence/inbox/${encodeURIComponent(eventId)}/read`, undefined, { retryCount: MAX_RETRIES })
+    },
     getKnowledgeProfile() {
         return api.get('/api/v2/knowledge/profile', { retryCount: MAX_RETRIES })
     },

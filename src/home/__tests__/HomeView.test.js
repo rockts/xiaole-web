@@ -5,7 +5,7 @@ import HomeView from '../../views/HomeView.vue'
 
 const push = vi.fn()
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
-vi.mock('../../services/api', () => ({ default: { getHome: vi.fn(), getProfileConfirmations: vi.fn() } }))
+vi.mock('../../services/api', () => ({ default: { getHome: vi.fn(), getProfileConfirmations: vi.fn(), getIntelligenceInbox: vi.fn() } }))
 import api from '../../services/api'
 
 const recommendation = (index = 1) => ({ stars: 5, title: `推荐事项 ${index}`, source: '中国科协', published_at: '2026-08-01', deadline: '2026-10-20', reason: '与你关注的科技教育方向有关', eligibility: { self: 'unknown', students: 'eligible', school: 'possible' }, action: { label: '查看详情' }, open_url: index === 1 ? 'https://example.com/item' : null })
@@ -23,11 +23,13 @@ const model = {
 }
 
 const cloneModel = () => structuredClone(model)
+const notificationItems = Array.from({ length: 5 }, (_, index) => ({ event_id: `event-${index + 1}`, title: index === 0 ? '甘肃教育数字化课题通知' : `最近通知 ${index + 1}`, source_name: '官方来源', sent_at: `2026-08-2${3 - Math.min(index, 3)}T09:00:00+08:00`, assessment_label: index === 0 ? '临时评估 4星' : '正式评估 5星', status_label: index === 0 ? '重要通知 · 附件尚未完整获取，需要确认' : '正式情报已确认', delivery_label: '已发送', is_read: false }))
 const confirmationItems = Array.from({ length: 4 }, (_, index) => ({ key: `field-${index}`, label: `资料 ${index}`, state: 'needs_confirmation', candidate_value: null, input_type: 'text', options: [], version: 'a'.repeat(64) }))
 const mountHome = async (overrides = {}, confirmations = confirmationItems) => {
   setActivePinia(createPinia())
   api.getHome.mockResolvedValue(Object.assign(cloneModel(), overrides))
   api.getProfileConfirmations.mockResolvedValue({ schema_version: 1, items: confirmations })
+  api.getIntelligenceInbox.mockResolvedValue({ degraded: false, items: notificationItems })
   const wrapper = mount(HomeView)
   await flushPromises()
   return wrapper
@@ -38,9 +40,31 @@ describe('Home 2.0 productization', () => {
 
   it('renders the seven product sections in the approved order', async () => {
     const wrapper = await mountHome()
-    expect(wrapper.findAll('[data-home-section]').map((section) => section.attributes('data-home-section'))).toEqual(['today', 'recommendations', 'ask', 'profile', 'recent', 'no-notification', 'systems'])
+    expect(wrapper.findAll('[data-home-section]').map((section) => section.attributes('data-home-section'))).toEqual(['today', 'recommendations', 'intelligence', 'ask', 'profile', 'recent', 'no-notification', 'systems'])
     expect(wrapper.get('[data-home-section="today"] h1').text()).toBe('今天')
     expect(wrapper.get('[data-home-section="today"]').text()).toContain('今天有 2 件值得你关注的事。')
+  })
+
+  it('keeps recent notifications separate from recommendations and limits them to three', async () => {
+    const wrapper = await mountHome()
+    const notifications = wrapper.get('[data-home-section="intelligence"]')
+    expect(notifications.findAll('[data-test="home-notification"]')).toHaveLength(3)
+    expect(notifications.text()).toContain('甘肃教育数字化课题通知')
+    expect(notifications.text()).toContain('临时评估 4星')
+    expect(notifications.text()).toContain('附件尚未完整获取，需要确认')
+    expect(wrapper.get('[data-home-section="recommendations"]')).not.toBe(notifications)
+    await notifications.get('[data-test="all-notifications"]').trigger('click')
+    expect(push).toHaveBeenCalledWith('/intelligence')
+  })
+
+  it('keeps Home recommendations profile and action status when Inbox fails', async () => {
+    api.getIntelligenceInbox.mockRejectedValueOnce(new Error('raw history error'))
+    const wrapper = await mountHome()
+    expect(wrapper.get('[data-home-section="intelligence"]').text()).toContain('通知历史暂时无法完整加载')
+    expect(wrapper.get('[data-home-section="recommendations"]').text()).toContain('推荐事项 1')
+    expect(wrapper.get('[data-home-section="profile"]').exists()).toBe(true)
+    expect(wrapper.get('[data-home-section="systems"]').text()).toContain('行动服务')
+    expect(wrapper.text()).not.toContain('raw history error')
   })
 
   it('shows at most three recommendations while preserving order and useful details', async () => {
