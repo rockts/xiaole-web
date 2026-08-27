@@ -48,7 +48,7 @@
         <p v-if="inboxFailed || inboxDegraded" class="gentle-empty compact" data-test="home-inbox-degraded">通知历史暂时无法完整加载</p>
         <div v-if="recentNotifications.length" class="notification-preview-list">
           <button v-for="item in recentNotifications" :key="item.event_id" type="button" data-test="home-notification" @click="router.push(`/intelligence/${encodeURIComponent(item.event_id)}`)">
-            <span class="preview-copy"><strong>{{ item.title }}</strong><small>{{ notificationSummary(item) }}</small></span><span class="preview-status">{{ item.delivery_label }}</span>
+            <span class="preview-copy"><strong>{{ item.title }}</strong><small>{{ notificationSummary(item) }}</small></span><span class="preview-status">{{ item.is_read ? '已读' : '未读' }} · {{ item.delivery_label }}</span>
           </button>
         </div>
         <p v-else-if="!inboxFailed" class="gentle-empty compact">还没有可显示的通知。</p>
@@ -101,6 +101,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useProfileConfirmationsStore } from '@/stores/profileConfirmations'
 import RecommendationCard from '@/home/components/RecommendationCard.vue'
+import { selectHomeIntelligenceItems } from '@/intelligence/selectHomeIntelligenceItems'
 
 const router = useRouter()
 const confirmationStore = useProfileConfirmationsStore()
@@ -114,7 +115,7 @@ const inboxDegraded = ref(false)
 
 const visibleRecommendations = computed(() => home.value?.recommendations?.items?.slice(0, 3) || [])
 const recentConversations = computed(() => home.value?.recent_conversations?.slice(0, 4) || [])
-const recentNotifications = computed(() => inboxItems.value.slice(0, 3))
+const recentNotifications = computed(() => selectHomeIntelligenceItems(inboxItems.value))
 const notificationSummary = (item) => [item.source_name, item.assessment_label, item.status_label].filter(Boolean).join(' · ')
 const showProfile = computed(() => confirmationStore.pendingCount > 0)
 const isStale = computed(() => home.value?.cache?.status === 'stale')

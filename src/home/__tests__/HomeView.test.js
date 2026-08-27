@@ -23,7 +23,17 @@ const model = {
 }
 
 const cloneModel = () => structuredClone(model)
-const notificationItems = Array.from({ length: 5 }, (_, index) => ({ event_id: `event-${index + 1}`, title: index === 0 ? '甘肃教育数字化课题通知' : `最近通知 ${index + 1}`, source_name: '官方来源', sent_at: `2026-08-2${3 - Math.min(index, 3)}T09:00:00+08:00`, assessment_label: index === 0 ? '临时评估 4星' : '正式评估 5星', status_label: index === 0 ? '重要通知 · 附件尚未完整获取，需要确认' : '正式情报已确认', delivery_label: '已发送', is_read: false }))
+const notificationItems = Array.from({ length: 11 }, (_, index) => ({
+  event_id: `event-${index + 1}`,
+  title: index === 10 ? '甘肃教育数字化课题通知' : `最近通知 ${index + 1}`,
+  source_name: '官方来源',
+  sent_at: `2026-08-2${3 - Math.min(index, 3)}T09:00:00+08:00`,
+  assessment_label: index === 10 ? '临时评估 4星' : '正式评估 5星',
+  status_label: index === 10 ? '重要通知 · 附件尚未完整获取，需要确认' : '正式情报已确认',
+  delivery_label: '已发送',
+  is_read: false,
+  requires_user_attention: index === 10,
+}))
 const confirmationItems = Array.from({ length: 4 }, (_, index) => ({ key: `field-${index}`, label: `资料 ${index}`, state: 'needs_confirmation', candidate_value: null, input_type: 'text', options: [], version: 'a'.repeat(64) }))
 const mountHome = async (overrides = {}, confirmations = confirmationItems) => {
   setActivePinia(createPinia())
@@ -45,12 +55,14 @@ describe('Home 2.0 productization', () => {
     expect(wrapper.get('[data-home-section="today"]').text()).toContain('今天有 2 件值得你关注的事。')
   })
 
-  it('keeps recent notifications separate from recommendations and limits them to three', async () => {
+  it('selects the eleventh actionable unread notification without changing recommendations', async () => {
     const wrapper = await mountHome()
     const notifications = wrapper.get('[data-home-section="intelligence"]')
     expect(notifications.findAll('[data-test="home-notification"]')).toHaveLength(3)
     expect(notifications.text()).toContain('甘肃教育数字化课题通知')
+    expect(notifications.text()).toContain('未读')
     expect(notifications.text()).toContain('临时评估 4星')
+    expect(notifications.text()).toContain('已发送')
     expect(notifications.text()).toContain('附件尚未完整获取，需要确认')
     expect(wrapper.get('[data-home-section="recommendations"]')).not.toBe(notifications)
     await notifications.get('[data-test="all-notifications"]').trigger('click')
