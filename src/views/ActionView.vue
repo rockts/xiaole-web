@@ -98,7 +98,7 @@ const load = async () => {
   loading.value = true
   error.value = false
   try {
-    const response = await api.getTasks('', 50)
+    const response = await api.getCurrentTasks(50)
     if (response?.success === false || !Array.isArray(response?.tasks)) throw new Error('tasks unavailable')
     const visible = response.tasks.filter((task) => task && visibleStatuses.has(task.status))
     tasks.value = await Promise.all(visible.map(async (task) => {

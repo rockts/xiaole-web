@@ -335,6 +335,10 @@ export default {
         return api.get('/tasks', { params });
     },
 
+    getCurrentTasks(limit = 50) {
+        return api.get('/tasks', { params: { view: 'current', limit } });
+    },
+
     getTask(taskId) {
         return api.get(`/tasks/${taskId}`)
     },

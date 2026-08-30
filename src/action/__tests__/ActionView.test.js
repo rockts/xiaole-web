@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ActionView from '../../views/ActionView.vue'
 
-vi.mock('../../services/api', () => ({ default: { getTasks: vi.fn(), getTask: vi.fn() } }))
+vi.mock('../../services/api', () => ({ default: { getTasks: vi.fn(), getCurrentTasks: vi.fn(), getTask: vi.fn() } }))
 import api from '../../services/api'
 
 const now = '2026-08-22T08:00:00Z'
@@ -61,7 +61,7 @@ const taskDetails = {
 const fullTasks = [running, userWaiting, systemWaiting, planned, failed, ...completed, task(999, 'cancelled'), task(1000, 'internal_debug')]
 
 const defaults = () => {
-  api.getTasks.mockResolvedValue({ success: true, tasks: fullTasks })
+  api.getCurrentTasks.mockResolvedValue({ success: true, tasks: fullTasks })
   api.getTask.mockImplementation(async (id) => taskDetails[id] || { success: false })
 }
 
@@ -77,6 +77,15 @@ const mountAction = async () => {
 describe('XiaoLe Phase D Action', () => {
   beforeEach(() => { vi.clearAllMocks(); defaults() })
 
+  it('uses only the server current projection instead of the historical task query', async () => {
+    api.getCurrentTasks.mockResolvedValueOnce({ success: true, tasks: [userWaiting, planned] })
+    const wrapper = await mountAction()
+    expect(api.getCurrentTasks).toHaveBeenCalledWith(50)
+    expect(api.getTasks).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('确认发布范围')
+    expect(wrapper.text()).toContain('准备下次资料整理')
+  })
+
   it('organizes tasks by user responsibility and explains current and next steps', async () => {
     const wrapper = await mountAction()
     expect(wrapper.get('[data-test="action-summary"]').text()).toContain('2 件正在处理，1 件需要你确认')
@@ -90,7 +99,7 @@ describe('XiaoLe Phase D Action', () => {
   })
 
   it('does not misclassify an ordinary pending or system wait as needing the user', async () => {
-    api.getTasks.mockResolvedValueOnce({ success: true, tasks: [planned, systemWaiting] })
+    api.getCurrentTasks.mockResolvedValueOnce({ success: true, tasks: [planned, systemWaiting] })
     const wrapper = await mountAction()
     expect(wrapper.find('[data-action-section="user"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-test="planned-task"]')).toHaveLength(1)
@@ -103,7 +112,7 @@ describe('XiaoLe Phase D Action', () => {
     expect(attention.text()).toContain('发送通知未完成')
     expect(wrapper.text()).not.toMatch(/in_progress|execution_attempt|ECONNRESET|private\/token|session-101|execution-1|do-not-render|internal_debug/)
 
-    api.getTasks.mockResolvedValueOnce({ success: true, tasks: [running] })
+    api.getCurrentTasks.mockResolvedValueOnce({ success: true, tasks: [running] })
     const healthy = await mountAction()
     expect(healthy.find('[data-action-section="attention"]').exists()).toBe(false)
   })
@@ -117,7 +126,7 @@ describe('XiaoLe Phase D Action', () => {
   })
 
   it('shows calm empty states without reserving a user-action block', async () => {
-    api.getTasks.mockResolvedValueOnce({ success: true, tasks: [] })
+    api.getCurrentTasks.mockResolvedValueOnce({ success: true, tasks: [] })
     const wrapper = await mountAction()
     expect(wrapper.get('[data-test="action-empty"]').text()).toContain('目前没有需要跟进的事项')
     expect(wrapper.get('[data-test="ongoing-empty"]').text()).toContain('目前没有正在执行的事项')
@@ -126,7 +135,7 @@ describe('XiaoLe Phase D Action', () => {
   })
 
   it('shows a retryable page failure when the Tasks API fails', async () => {
-    api.getTasks.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ success: true, tasks: [] })
+    api.getCurrentTasks.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ success: true, tasks: [] })
     const wrapper = await mountAction()
     expect(wrapper.get('[data-test="action-error"]').text()).toContain('行动暂时无法读取')
     await wrapper.get('[data-test="action-retry"]').trigger('click')
@@ -135,7 +144,7 @@ describe('XiaoLe Phase D Action', () => {
   })
 
   it('keeps partial tasks visible when task detail is unavailable', async () => {
-    api.getTasks.mockResolvedValueOnce({ success: true, tasks: [running] })
+    api.getCurrentTasks.mockResolvedValueOnce({ success: true, tasks: [running] })
     api.getTask.mockRejectedValueOnce(new Error('detail unavailable'))
     const wrapper = await mountAction()
     expect(wrapper.findAll('[data-test="ongoing-task"]')).toHaveLength(1)
