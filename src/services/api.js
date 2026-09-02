@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { createSafeCore2Error, mapCore2Response } from '@/chat/core2Response'
 import { API_BASE_URL } from '@/config/apiBase'
 
 const api = axios.create({
@@ -161,45 +160,6 @@ export default {
         return api.delete(`/messages/${messageId}`)
     },
 
-    sendMessage(data) {
-        // 基本参数使用查询参数
-        const params = new URLSearchParams()
-        params.append('prompt', data.prompt || '')
-        if (data.session_id) params.append('session_id', data.session_id)
-        if (data.user_id) params.append('user_id', data.user_id)
-        if (data.response_style) params.append('response_style', data.response_style)
-
-        // 图片路径通过body传输(避免URL长度限制)
-        const body = data.image_path ? { image_path: data.image_path } : null
-
-        // 增加超时时间到 120 秒，并禁用自动重试
-        // 使用 /api/chat 避免与前端路由 /chat/xxx 冲突
-        return api.post(`/api/chat?${params.toString()}`, body, {
-            timeout: 120000,
-            retryCount: MAX_RETRIES
-        })
-    },
-
-    async chatCore2(data, { signal } = {}) {
-        try {
-            const response = await api.post('/api/v2/chat', {
-                message: data.message || '',
-                conversation_id: data.conversation_id || null,
-                attachments: Array.isArray(data.attachments) ? data.attachments : []
-            }, {
-                timeout: 120000,
-                retryCount: MAX_RETRIES,
-                signal
-            })
-            return {
-                ...mapCore2Response(response),
-                conversationId: typeof response?.conversation_id === 'string' ? response.conversation_id : null
-            }
-        } catch (cause) {
-            throw createSafeCore2Error(cause)
-        }
-    },
-
     // 流式聊天（SSE 兼容，切片流）
     async streamChat(data, { onStart, onDelta, onEnd, signal } = {}) {
         // 使用 fetch 以支持 ReadableStream
@@ -219,7 +179,7 @@ export default {
         // 图片路径通过body传输
         const body = data.image_path ? JSON.stringify({ image_path: data.image_path }) : null
 
-        const url = `${API_BASE_URL}/chat/stream?${params.toString()}`
+        const url = `${API_BASE_URL}/api/chat/stream?${params.toString()}`
         const res = await fetch(url, { method: 'POST', headers, body, signal })
         if (!res.ok || !res.body) {
             const text = await res.text().catch(() => '')

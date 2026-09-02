@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 const REQUIRED_API_BASE = 'https://api.xiaole.app'
 const LEGACY_HOSTS = ['api.leke.xyz', 'ai.leke.xyz']
 const EXECUTABLE_EXTENSIONS = new Set(['.html', '.js', '.mjs', '.json', '.css'])
+const CANONICAL_CHAT_ENDPOINT = '/api/chat/stream'
 
 export async function auditProductionEndpoints(distDir) {
   const files = (await walk(distDir)).filter((file) => EXECUTABLE_EXTENSIONS.has(path.extname(file)))
@@ -33,7 +34,24 @@ export async function auditProductionEndpoints(distDir) {
     throw new Error(`Unexpected production API endpoint found: ${unexpected.join(', ')}`)
   }
 
-  return { productionApiBase: REQUIRED_API_BASE, filesScanned: files.length }
+  const noncanonicalChatEndpoints = [
+    ['/api/v2/chat', combined.includes('/api/v2/chat')],
+    ['/api/chat', combined.includes('/api/chat?')],
+    ['/chat/stream', /(^|[^a-zA-Z0-9_/])\/chat\/stream/.test(combined)]
+  ].filter(([, found]) => found).map(([endpoint]) => endpoint)
+  if (noncanonicalChatEndpoints.length) {
+    throw new Error(`Noncanonical Chat endpoint found: ${noncanonicalChatEndpoints.join(', ')}`)
+  }
+
+  if (!combined.includes(CANONICAL_CHAT_ENDPOINT)) {
+    throw new Error(`Canonical Chat endpoint missing: ${CANONICAL_CHAT_ENDPOINT}`)
+  }
+
+  return {
+    productionApiBase: REQUIRED_API_BASE,
+    canonicalChatEndpoint: CANONICAL_CHAT_ENDPOINT,
+    filesScanned: files.length
+  }
 }
 
 async function walk(root, relative = '') {

@@ -6,6 +6,7 @@ import './assets/styles/main.css'
 import 'highlight.js/styles/github-dark.css'
 import { API_BASE_URL } from './config/apiBase'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
+import { migrateLegacyChatMode } from './chat/chatSettingsMigration'
 // import { healthCheck } from './utils/healthCheck' // 已禁用: WebSocket 已监控连接
 
 // 🔧 尽早设置移动端视口高度，解决 100vh 在真机上的问题
@@ -33,6 +34,8 @@ console.log(
   '%c💡 调试快捷键: Ctrl+Shift+D 清除认证信息',
   'color: #10b981; font-size: 12px;'
 );
+
+migrateLegacyChatMode()
 
 const app = createApp(App)
 const pinia = createPinia()

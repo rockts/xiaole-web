@@ -44,13 +44,6 @@
       <div class="settings-section">
         <h4>🤖 AI 设置</h4>
         <div class="form-group">
-          <label>对话模式</label>
-          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="core2" /> 标准对话</label>
-          <small>推荐用于日常对话、知识查询和行动。</small>
-          <label class="checkbox-label"><input v-model="settings.chatMode" type="radio" value="legacy" /> 兼容模式</label>
-          <small>用于附件、图片、语音和部分旧会话能力。</small>
-        </div>
-        <div class="form-group">
           <label>响应风格</label>
           <select v-model="settings.responseStyle">
             <option value="concise">简洁</option>
@@ -76,7 +69,6 @@
       <div class="settings-section">
         <details class="advanced-details">
           <summary>高级与诊断</summary>
-          <p>仅在排查兼容问题时使用。当前内部模式：<code>{{ settings.chatMode }}</code></p>
           <div class="advanced-links"><a href="/behavior">行为分析</a><a href="/tools">工具</a></div>
         </details>
       </div>
@@ -109,6 +101,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { readSettingsSafely } from "@/chat/chatSettingsMigration";
 
 const settings = ref({
   username: "default_user",
@@ -116,7 +109,6 @@ const settings = ref({
   theme: "light",
   compactMode: false,
   responseStyle: "balanced",
-  chatMode: "legacy",
   autoMemory: true,
   voiceEnabled: false,
   notificationEnabled: true,
@@ -125,15 +117,11 @@ const settings = ref({
 
 const loadSettings = () => {
   // 从 localStorage 加载设置
-  const saved = localStorage.getItem("xiaole_settings");
-  if (saved) {
-    settings.value = { ...settings.value, ...JSON.parse(saved) };
-  }
+  settings.value = { ...settings.value, ...readSettingsSafely() };
 };
 
 const saveSettings = () => {
   localStorage.setItem("xiaole_settings", JSON.stringify(settings.value));
-  window.dispatchEvent(new CustomEvent("xiaole-chat-mode-change", { detail: settings.value.chatMode }));
   alert("设置已保存！");
 };
 

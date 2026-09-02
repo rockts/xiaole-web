@@ -33,7 +33,6 @@
     </div>
 
     <!-- 会话加载错误提示 -->
-    <div v-if="chatMode === 'legacy'" class="compatibility-mode-label" data-testid="compatibility-mode-label">兼容模式</div>
     <div v-if="sessionLoadError" class="session-error-message">
       <div class="error-icon">⚠️</div>
       <h2 class="error-title">无法加载会话</h2>
@@ -219,15 +218,6 @@
                   }"
                   v-html="renderMarkdown(getDisplayContent(message))"
                 ></div>
-                <Core2ResultMeta
-                  v-if="message.core2"
-                  :intent="message.intent"
-                  :sources="message.sources"
-                  :action="message.action"
-                  :core2-error="message.core2Error"
-                  @switch-legacy="switchToLegacy"
-                />
-
                 <div
                   v-if="message.status === 'typing'"
                   class="typing-indicator"
@@ -1105,22 +1095,6 @@
       @close="showShareDialog = false"
     />
 
-    <div
-      v-if="compatibilityPrompt"
-      class="compatibility-prompt-backdrop"
-      role="presentation"
-      @click.self="closeCompatibilityPrompt"
-    >
-      <section class="compatibility-prompt" role="dialog" aria-modal="true" aria-labelledby="compatibility-prompt-title" @keydown.esc.stop="closeCompatibilityPrompt">
-        <h3 id="compatibility-prompt-title">这个功能需要使用兼容模式</h3>
-        <p>{{ compatibilityPrompt }}目前由兼容模式提供。切换后请再次使用这个功能。</p>
-        <div class="compatibility-prompt-actions">
-          <button ref="compatibilityCancelButton" type="button" class="secondary" @click="closeCompatibilityPrompt">暂不切换</button>
-          <button type="button" data-testid="confirm-compatibility-mode" @click="confirmCompatibilityMode">切换到兼容模式</button>
-        </div>
-      </section>
-    </div>
-
     <!-- 语音模式对话框 -->
     <VoiceModeDialog
       ref="voiceModeDialogRef"
@@ -1155,40 +1129,11 @@ import api from "@/services/api";
 
 import ShareDialog from "@/components/common/ShareDialog.vue";
 import VoiceModeDialog from "@/components/voice/VoiceModeDialog.vue";
-import Core2ResultMeta from "@/components/chat/Core2ResultMeta.vue";
-import { readChatMode, writeChatMode } from "@/chat/chatMode";
 import { applyDraftToEditor, consumeHomeDraft } from "@/chat/homeDraft";
 
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
-const chatMode = ref(readChatMode());
-const onChatModeChange = (event) => { chatMode.value = event.detail === "core2" ? "core2" : "legacy"; };
-const switchToLegacy = () => {
-  chatMode.value = writeChatMode("legacy");
-  window.dispatchEvent(new CustomEvent("xiaole-chat-mode-change", { detail: "legacy" }));
-};
-const compatibilityPrompt = ref("");
-const compatibilityCancelButton = ref(null);
-let compatibilityPromptTrigger = null;
-const requestCompatibilityMode = (capability) => {
-  if (chatMode.value !== "core2") return false;
-  compatibilityPromptTrigger = document.activeElement;
-  compatibilityPrompt.value = capability;
-  nextTick(() => compatibilityCancelButton.value?.focus());
-  return true;
-};
-const closeCompatibilityPrompt = () => {
-  compatibilityPrompt.value = "";
-  nextTick(() => {
-    compatibilityPromptTrigger?.focus?.();
-    compatibilityPromptTrigger = null;
-  });
-};
-const confirmCompatibilityMode = () => {
-  switchToLegacy();
-  closeCompatibilityPrompt();
-};
 const { messages, sessionInfo, isTyping } = storeToRefs(chatStore);
 const isEmptyChat = computed(
   () => (messages.value?.length || 0) === 0 && !isTyping.value
@@ -1949,7 +1894,7 @@ const saveEdit = async (message) => {
       }
 
       // chatStore.sendMessage 不会重复添加用户消息，只会触发 AI 回复
-      await chatStore.sendMessage(newContent, imagePath, router);
+      await chatStore.sendUnifiedMessage(newContent, imagePath, router);
     }
   } catch (e) {
     console.error("Save edit failed:", e);
@@ -2102,7 +2047,7 @@ const regenerateMessage = async (message) => {
     });
 
     // 4. 重新发送
-    await chatStore.sendMessage(content, imagePath, router);
+    await chatStore.sendUnifiedMessage(content, imagePath, router);
   } catch (e) {
     console.error("Regenerate failed:", e);
   }
@@ -2669,11 +2614,6 @@ const sendMessage = async () => {
   // 如果没有内容且没有待发送文件，且不在打字中，则返回
   if ((!content && !pendingFile.value) || isTyping.value) return;
 
-  if (chatMode.value === "core2" && pendingFile.value) {
-    requestCompatibilityMode(pendingFile.value.type?.startsWith("image/") ? "图片" : "附件");
-    return;
-  }
-
   // 立即清空输入框和引用
   messageInput.value.innerText = "";
   messageInput.value.innerHTML = "";
@@ -2779,12 +2719,7 @@ const sendMessage = async () => {
             }
           }
         }
-        if (chatMode.value === "core2") {
-          const attachments = currentFile ? [{ name: currentFile.name, type: currentFile.type }] : [];
-          await chatStore.sendMessageCore2(content, attachments, router);
-        } else {
-          await chatStore.sendMessageStreamed(content, pathToSend, router);
-        }
+        await chatStore.sendUnifiedMessage(content, pathToSend, router);
       } catch (e) {
         console.error("发送消息失败:", e.message);
         // 移除 thinking 占位消息
@@ -2847,18 +2782,12 @@ const handleMainButton = () => {
 };
 
 const handleUpload = () => {
-  if (requestCompatibilityMode("附件和图片")) return;
   fileInput.value?.click();
 };
 
 const handleFileChange = async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
-
-  if (requestCompatibilityMode(file.type.startsWith("image/") ? "图片" : "附件")) {
-    e.target.value = "";
-    return;
-  }
 
   // 检查文件类型
   if (file.type.startsWith("image/")) {
@@ -3174,7 +3103,6 @@ function writeString(view, offset, string) {
 }
 
 const handleVoiceInput = async () => {
-  if (requestCompatibilityMode("语音")) return;
   if (recognition.value) {
     if (isRecording.value) {
       recognition.value.stop();
@@ -3249,7 +3177,6 @@ const handleVoiceInput = async () => {
 };
 
 const toggleVoiceMode = () => {
-  if (requestCompatibilityMode("语音模式")) return;
   const next = !showVoiceMode.value;
   onVoiceModeVisibleChange(next);
 };
@@ -3284,7 +3211,7 @@ const handleVoiceMessage = async (data) => {
 
   try {
     // 发送到后端（语音：即时显示 + voice_call 极简风格）
-    await chatStore.sendMessage(data.content, null, null, {
+    await chatStore.sendUnifiedMessage(data.content, null, null, {
       instant: true,
       responseStyle: "voice_call",
     });
@@ -3344,7 +3271,6 @@ onMounted(() => {
     inputContent.value = homeDraft;
     nextTick(() => applyDraftToEditor(messageInput.value, homeDraft));
   }
-  window.addEventListener("xiaole-chat-mode-change", onChatModeChange);
   // 终极超时保护：如果10秒后还在加载,强制停止
   setTimeout(() => {
     if (isLoadingSession.value) {
@@ -3516,7 +3442,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("xiaole-chat-mode-change", onChatModeChange);
   // 停止朗读
   stopSpeech();
   stopVisualizer();
@@ -3699,59 +3624,6 @@ const feedbackMessage = async (message, type) => {
   height: 100%;
   position: relative;
   background: var(--bg-primary);
-}
-.compatibility-mode-label {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  z-index: 20;
-  transform: translateX(-50%);
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--input-bg);
-  color: var(--text-tertiary);
-  font-size: 12px;
-}
-.compatibility-prompt-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10010;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(24, 22, 19, 0.28);
-  backdrop-filter: blur(3px);
-}
-.compatibility-prompt {
-  width: min(420px, 100%);
-  padding: 22px;
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  background: var(--card-bg);
-  box-shadow: 0 18px 55px rgba(30, 25, 20, 0.18);
-}
-.compatibility-prompt h3 { margin: 0 0 8px; font-size: 18px; color: var(--text-primary); }
-.compatibility-prompt p { margin: 0; color: var(--text-secondary); line-height: 1.65; }
-.compatibility-prompt-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-.compatibility-prompt-actions button {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  cursor: pointer;
-}
-.compatibility-prompt-actions button.secondary {
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-primary);
-}
-@media (max-width: 480px) {
-  .compatibility-prompt-backdrop { align-items: end; padding: 12px 12px calc(72px + env(safe-area-inset-bottom)); }
-  .compatibility-prompt { border-radius: 18px; }
-  .compatibility-prompt-actions { flex-direction: column-reverse; }
-  .compatibility-prompt-actions button { width: 100%; }
 }
 /* 欢迎消息 */
 .welcome-message {

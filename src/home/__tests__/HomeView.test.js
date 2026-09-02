@@ -94,12 +94,12 @@ describe('Home 2.0 productization', () => {
     expect(wrapper.get('[data-test="recommendations-empty"]').text()).toBe('目前没有需要优先处理的事项。')
   })
 
-  it('quick questions only prefill Chat and do not change chat mode', async () => {
-    localStorage.setItem('xiaole_settings', '{"chatMode":"core2"}')
+  it('quick questions only prefill Chat and do not create a transport preference', async () => {
+    localStorage.setItem('xiaole_settings', '{"theme":"dark"}')
     const wrapper = await mountHome()
     await wrapper.get('[data-test="quick-question"]').trigger('click')
     expect(push).toHaveBeenCalledWith({ path: '/chat', state: { xiaoleDraft: '最近有什么值得我关注？', source: 'home_quick_question' } })
-    expect(localStorage.getItem('xiaole_settings')).toBe('{"chatMode":"core2"}')
+    expect(localStorage.getItem('xiaole_settings')).toBe('{"theme":"dark"}')
   })
 
   it('keeps profile confirmation collapsed and uses confirmations even when cached Home profile is unavailable', async () => {

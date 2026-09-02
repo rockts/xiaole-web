@@ -31,10 +31,32 @@ describe('production endpoint audit', () => {
 
     const dist = await fixture({
       'index.html': '<script src="/assets/index.js"></script>',
-      'assets/index.js': 'fetch("https://api.xiaole.app/chat")'
+      'assets/index.js': 'fetch("https://api.xiaole.app/api/chat/stream")'
     })
     await expect(module.auditProductionEndpoints(dist)).resolves.toMatchObject({
       productionApiBase: 'https://api.xiaole.app'
+    })
+  })
+
+  test.each(['/api/v2/chat', '/api/chat?prompt=hello', '/chat/stream?prompt=hello'])('rejects noncanonical frontend Chat endpoint %s', async (endpoint) => {
+    const module = await import('../../../scripts/audit-production-endpoints.mjs')
+    const dist = await fixture({
+      'index.html': '<script src="/assets/index.js"></script>',
+      'assets/index.js': `const base="https://api.xiaole.app";fetch(base+"${endpoint}")`
+    })
+
+    await expect(module.auditProductionEndpoints(dist)).rejects.toThrow('Noncanonical Chat endpoint')
+  })
+
+  test('reports the canonical Chat endpoint', async () => {
+    const module = await import('../../../scripts/audit-production-endpoints.mjs')
+    const dist = await fixture({
+      'index.html': '<script src="/assets/index.js"></script>',
+      'assets/index.js': 'fetch("https://api.xiaole.app/api/chat/stream?prompt=hello")'
+    })
+
+    await expect(module.auditProductionEndpoints(dist)).resolves.toMatchObject({
+      canonicalChatEndpoint: '/api/chat/stream'
     })
   })
 })

@@ -86,67 +86,6 @@ export const useChatStore = defineStore('chat', () => {
     const typingTimer = ref(null)
     const activeTypingMessageId = ref(null)
     const activeStreamAbort = ref(null)
-    const core2InFlight = ref(false)
-
-    const sendMessageCore2 = async (content, attachments = [], router = null) => {
-        if (core2InFlight.value) return false
-        core2InFlight.value = true
-        isTyping.value = true
-
-        let msgIndex = -1
-        for (let i = messages.value.length - 1; i >= 0; i--) {
-            if (messages.value[i].role === 'assistant' && messages.value[i].status === 'thinking') {
-                msgIndex = i
-                break
-            }
-        }
-        if (msgIndex === -1) {
-            messages.value.push({ id: `core2-${Date.now()}`, role: 'assistant', content: '', status: 'thinking' })
-            msgIndex = messages.value.length - 1
-        }
-
-        try {
-            const transport = createChatTransport('core2', { chatCore2: api.chatCore2 })
-            const response = await transport.send({
-                message: content,
-                conversationId: currentSessionId.value || null,
-                attachments: Array.isArray(attachments) ? attachments : []
-            })
-            const target = messages.value[msgIndex]
-            Object.assign(target, {
-                content: response.answer,
-                status: 'done',
-                core2: true,
-                intent: response.intent,
-                sources: response.sources,
-                action: response.action
-            })
-            if (response.conversationId) {
-                const isNew = !currentSessionId.value
-                currentSessionId.value = response.conversationId
-                if (isNew) {
-                    sessionInfo.value = { id: response.conversationId, title: content.slice(0, 30) }
-                    router?.push(`/chat/${response.conversationId}`)
-                }
-            }
-            await loadSessions()
-            return true
-        } catch (error) {
-            Object.assign(messages.value[msgIndex], {
-                content: error?.code === 'CORE2_ATTACHMENTS_UNSUPPORTED'
-                    ? error.message
-                    : '小乐 2.0 暂时不可用',
-                status: 'done',
-                core2: true,
-                core2Error: error?.code !== 'CORE2_ATTACHMENTS_UNSUPPORTED'
-            })
-            return false
-        } finally {
-            isTyping.value = false
-            core2InFlight.value = false
-        }
-    }
-
     const sendMessage = async (content, imagePath = null, router = null, options = {}) => {
         try {
             const instant = !!options.instant // 语音模式：立即展示，不走打字动画
@@ -346,14 +285,8 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     // 流式发送消息（SSE 切片流）
-    const sendMessageStreamed = async (content, imagePath = null, router = null, options = {}) => {
+    const sendUnifiedMessage = async (content, imagePath = null, router = null, options = {}) => {
         const responseStyle = options.responseStyle || 'balanced'
-
-        // 🔧 修复: 当有图片时使用非流式接口(避免Cloudflare HTTP/2错误)
-        if (imagePath) {
-            console.warn('⚠️ 检测到图片,使用非流式接口')
-            return await sendMessage(content, imagePath, router, options)
-        }
 
         try {
             isTyping.value = true
@@ -467,7 +400,7 @@ export const useChatStore = defineStore('chat', () => {
                 console.log('✅ Sessions refreshed after streamed message')
             }
 
-            const transport = createChatTransport('legacy', { streamChat: api.streamChat })
+            const transport = createChatTransport({ streamChat: api.streamChat })
             await transport.send({
                 message: content,
                 conversationId: currentSessionId.value || null,
@@ -624,9 +557,7 @@ export const useChatStore = defineStore('chat', () => {
         loading,
         loadSessions,
         loadSession,
-        sendMessage,
-        sendMessageStreamed,
-        sendMessageCore2,
+        sendUnifiedMessage,
         stopGeneration,
         uploadImage,
         uploadDocument,

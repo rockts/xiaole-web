@@ -1,35 +1,33 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Core2ChatTransport, LegacyChatTransport, createChatTransport } from '../transports'
+import { UnifiedChatTransport, createChatTransport } from '../transports'
 
-describe('chat transports', () => {
-  it('legacy calls only the existing stream boundary', async () => {
-    const streamChat = vi.fn().mockResolvedValue('legacy')
-    const chatCore2 = vi.fn()
-    const transport = new LegacyChatTransport({ streamChat })
-    await transport.send({ message: 'hi', conversationId: 'c1' })
-    expect(streamChat).toHaveBeenCalledOnce()
-    expect(chatCore2).not.toHaveBeenCalled()
+describe('Phase B unified chat transport', () => {
+  it('sends text, session, image and response style through one stream boundary', async () => {
+    const streamChat = vi.fn().mockResolvedValue(undefined)
+    const transport = new UnifiedChatTransport({ streamChat })
+    const callbacks = { onDelta: vi.fn() }
+
+    await transport.send({
+      message: '请看图片',
+      conversationId: 'c1',
+      imagePath: '/uploads/a.png',
+      responseStyle: 'voice_call',
+      callbacks
+    })
+
+    expect(streamChat).toHaveBeenCalledWith({
+      prompt: '请看图片',
+      session_id: 'c1',
+      image_path: '/uploads/a.png',
+      response_style: 'voice_call'
+    }, expect.objectContaining({ ...callbacks, signal: expect.any(AbortSignal) }))
   })
 
-  it('core2 maps the request and never calls legacy', async () => {
-    const chatCore2 = vi.fn().mockResolvedValue({ answer: 'ok', intent: 'conversation', sources: [], action: null })
-    const streamChat = vi.fn()
-    const transport = new Core2ChatTransport({ chatCore2 })
-    await transport.send({ message: 'hi', conversationId: 'c1', attachments: [] })
-    expect(chatCore2).toHaveBeenCalledWith({ message: 'hi', conversation_id: 'c1', attachments: [] }, expect.any(Object))
-    expect(streamChat).not.toHaveBeenCalled()
-  })
+  it('creates the same transport without accepting a mode selector', () => {
+    const first = createChatTransport({ streamChat: vi.fn() })
+    const second = createChatTransport({ streamChat: vi.fn() })
 
-  it('core2 rejects attachments before any request', async () => {
-    const chatCore2 = vi.fn()
-    const transport = new Core2ChatTransport({ chatCore2 })
-    await expect(transport.send({ message: 'read', attachments: [{ name: 'a.pdf' }] })).rejects.toMatchObject({ code: 'CORE2_ATTACHMENTS_UNSUPPORTED' })
-    expect(chatCore2).not.toHaveBeenCalled()
-  })
-
-  it('selector only selects a transport and exposes no intent router', () => {
-    const selected = createChatTransport('core2', { chatCore2: vi.fn() })
-    expect(selected).toBeInstanceOf(Core2ChatTransport)
-    expect(selected.classifyIntent).toBeUndefined()
+    expect(first).toBeInstanceOf(UnifiedChatTransport)
+    expect(second).toBeInstanceOf(UnifiedChatTransport)
   })
 })
