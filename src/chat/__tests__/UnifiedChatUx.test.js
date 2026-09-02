@@ -6,10 +6,11 @@ import SettingsView from '@/views/SettingsView.vue'
 import SettingsModal from '@/components/common/SettingsModal.vue'
 import { migrateLegacyChatMode } from '../chatSettingsMigration'
 
-const { route, router, uploadDocument } = vi.hoisted(() => ({
+const { route, router, uploadDocument, getSession } = vi.hoisted(() => ({
   route: { params: {}, path: '/chat' },
   router: { push: vi.fn(), replace: vi.fn() },
-  uploadDocument: vi.fn().mockResolvedValue({ success: true, summary: '摘要', key_points: [], processing_time: 0, document_id: 1 })
+  uploadDocument: vi.fn().mockResolvedValue({ success: true, summary: '摘要', key_points: [], processing_time: 0, document_id: 1 }),
+  getSession: vi.fn().mockResolvedValue({ messages: [] })
 }))
 
 vi.mock('vue-router', () => ({
@@ -20,7 +21,7 @@ vi.mock('vue-router', () => ({
 vi.mock('@/services/api', () => ({
   default: {
     getSessions: vi.fn().mockResolvedValue({ sessions: [] }),
-    getSession: vi.fn().mockResolvedValue({ messages: [] }),
+    getSession,
     recognizeVoice: vi.fn(),
     uploadImage: vi.fn(),
     uploadDocument,
@@ -46,6 +47,10 @@ describe('Phase B one user-visible Chat', () => {
     router.push.mockReset()
     router.replace.mockReset()
     uploadDocument.mockClear()
+    getSession.mockReset()
+    getSession.mockResolvedValue({ messages: [] })
+    route.params = {}
+    route.path = '/chat'
   })
 
   it.each([
@@ -78,6 +83,31 @@ describe('Phase B one user-visible Chat', () => {
       expect(wrapper.find('.input-preview-area').exists()).toBe(true)
     })
     expect(localStorage.getItem('xiaole_settings') || '').not.toContain('chatMode')
+    wrapper.unmount()
+  })
+
+  it('renders historical and new failures with one Chat product language', async () => {
+    route.params = { sessionId: 'historical-session' }
+    route.path = '/chat/historical-session'
+    getSession.mockResolvedValue({
+      title: '历史会话',
+      messages: [
+        { id: 1, role: 'assistant', content: '小乐 2.0 暂时不可用', core2Error: true },
+        { id: 2, role: 'assistant', content: '这条历史回复当时生成失败了。' },
+        { id: 3, role: 'assistant', content: '普通历史消息' },
+        { id: 4, role: 'assistant', content: '新消息' }
+      ]
+    })
+
+    const wrapper = mountChat()
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('这条历史回复当时未能正常完成。')
+    })
+    expect(wrapper.text()).toContain('这条历史回复当时生成失败了。')
+    expect(wrapper.text()).toContain('普通历史消息')
+    expect(wrapper.text()).toContain('新消息')
+    expect(wrapper.text()).not.toMatch(/标准对话|兼容模式|Compatibility|Core2|Legacy|小乐\s*2\.0/)
     wrapper.unmount()
   })
 

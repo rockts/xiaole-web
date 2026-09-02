@@ -3540,7 +3540,7 @@ const extractReferences = (content) => {
 };
 
 const getDisplayContent = (message) => {
-  if (message.core2Error) return "标准对话暂时不可用。";
+  if (message.core2Error) return "这条历史回复当时未能正常完成。";
   // 如果有结构化的 search_results，我们仍然尝试移除文本中的引用部分，避免重复
   // 如果没有 search_results，我们也移除引用部分，因为会渲染成卡片
   const { main } = extractReferences(message.content);
