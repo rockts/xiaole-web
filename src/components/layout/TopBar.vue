@@ -373,24 +373,6 @@ onMounted(() => {
   window.addEventListener("resize", onResize);
   window.__topbar_onResize = onResize;
 
-  // 主题跟随系统设置
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const savedTheme = localStorage.getItem("theme");
-  const theme = savedTheme || (prefersDark ? "dark" : "light");
-  document.documentElement.setAttribute("data-theme", theme);
-
-  // 监听系统主题变化
-  window
-    .matchMedia("(prefers-color-scheme: dark)")
-    .addEventListener("change", (e) => {
-      if (!localStorage.getItem("theme")) {
-        document.documentElement.setAttribute(
-          "data-theme",
-          e.matches ? "dark" : "light"
-        );
-      }
-    });
-
   document.addEventListener("click", handleOutsideClick);
 
 });

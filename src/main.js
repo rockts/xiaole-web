@@ -7,6 +7,7 @@ import 'highlight.js/styles/github-dark.css'
 import { API_BASE_URL } from './config/apiBase'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
 import { migrateLegacyChatMode } from './chat/chatSettingsMigration'
+import { initializeTheme } from './theme/themeAuthority'
 // import { healthCheck } from './utils/healthCheck' // 已禁用: WebSocket 已监控连接
 
 // 🔧 尽早设置移动端视口高度，解决 100vh 在真机上的问题
@@ -36,6 +37,7 @@ console.log(
 );
 
 migrateLegacyChatMode()
+initializeTheme()
 
 const app = createApp(App)
 const pinia = createPinia()

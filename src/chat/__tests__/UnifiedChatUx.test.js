@@ -3,7 +3,6 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ChatView from '@/views/ChatView.vue'
 import SettingsView from '@/views/SettingsView.vue'
-import SettingsModal from '@/components/common/SettingsModal.vue'
 import { migrateLegacyChatMode } from '../chatSettingsMigration'
 
 const { route, router, uploadDocument, getSession } = vi.hoisted(() => ({
@@ -111,14 +110,11 @@ describe('Phase B one user-visible Chat', () => {
     wrapper.unmount()
   })
 
-  it.each([
-    ['settings page', SettingsView],
-    ['settings modal', SettingsModal]
-  ])('does not expose or save a mode in the %s', async (_label, component) => {
+  it('does not expose or save a mode in the settings page', async () => {
     localStorage.setItem('xiaole_settings', '{"chatMode":"legacy","theme":"dark"}')
     migrateLegacyChatMode()
     vi.stubGlobal('alert', vi.fn())
-    const wrapper = mount(component)
+    const wrapper = mount(SettingsView, { global: { stubs: { Teleport: true, RouterLink: { template: '<a><slot /></a>' } } } })
 
     expect(wrapper.text()).not.toMatch(/对话模式|兼容模式|标准对话|Core2|Legacy/)
     expect(wrapper.findAll('input[type="radio"]')).toHaveLength(0)

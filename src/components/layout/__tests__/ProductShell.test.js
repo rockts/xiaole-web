@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import SidebarModern from '../SidebarModern.vue'
 import MobileBottomNav from '../MobileBottomNav.vue'
 import { useChatStore } from '@/stores/chat'
+import { initializeTheme } from '@/theme/themeAuthority'
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -43,7 +44,22 @@ const mountShell = async (width) => {
 }
 
 describe('XiaoLe Phase A product shell', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+    initializeTheme()
+  })
+
+  it('uses the light and dark logo variants for the resolved theme', async () => {
+    const light = await mountShell(1280)
+    expect(light.get('[data-testid="sidebar-logo"]').attributes('src')).toContain('logo-xiaole.png')
+    light.unmount()
+
+    localStorage.setItem('xiaole_settings', JSON.stringify({ theme: 'dark' }))
+    initializeTheme()
+    const dark = await mountShell(1280)
+    expect(dark.get('[data-testid="sidebar-logo"]').attributes('src')).toContain('logo-xiaole-white-lines.png')
+  })
 
   it('renders the desktop product navigation and limits recent conversations to six', async () => {
     const wrapper = await mountShell(1280)
@@ -62,6 +78,12 @@ describe('XiaoLe Phase A product shell', () => {
 
   it('renders a compact mobile drawer with five conversations and no duplicated primary navigation', async () => {
     const wrapper = await mountShell(390)
+    const drawer = wrapper.get('.product-sidebar')
+    expect(drawer.attributes('aria-hidden')).toBe('true')
+    expect(drawer.attributes()).toHaveProperty('inert')
+    await wrapper.vm.toggle()
+    expect(drawer.attributes('aria-hidden')).toBe('false')
+    expect(drawer.attributes()).not.toHaveProperty('inert')
     expect(wrapper.findAll('[data-testid="primary-nav-item"]')).toHaveLength(0)
     expect(wrapper.findAll('[data-testid="recent-conversation"]')).toHaveLength(5)
     expect(wrapper.get('[data-testid="new-chat"]')).toBeTruthy()

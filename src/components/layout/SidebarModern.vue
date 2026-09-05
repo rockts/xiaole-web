@@ -1,8 +1,8 @@
 <template>
-  <aside class="product-sidebar" :class="{ collapsed, open: isMobile && !collapsed }" aria-label="小乐导航">
+  <aside class="product-sidebar" :class="{ collapsed, open: isMobile && !collapsed }" aria-label="小乐导航" :aria-hidden="isMobile && collapsed" :inert="isMobile && collapsed ? '' : null">
     <div class="sidebar-brand">
       <button class="brand-button" type="button" @click="collapsed ? toggle() : goHome()" aria-label="小乐首页">
-        <img :src="logoImage" alt="" /><span class="brand-copy"><strong>XiaoLe</strong><small>我的 AI 管家</small></span>
+        <img data-testid="sidebar-logo" :src="sidebarLogo" alt="" /><span class="brand-copy"><strong>XiaoLe</strong><small>我的 AI 管家</small></span>
       </button>
       <button class="collapse-button" type="button" @click="toggle" :aria-label="collapsed ? '展开侧栏' : '收起侧栏'">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M9 3v18"/></svg>
@@ -63,7 +63,9 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import api from '@/services/api'
-import logoImage from '@/assets/logo-xiaole.png'
+import logoLight from '@/assets/logo-xiaole.png'
+import logoDark from '@/assets/logo-xiaole-white-lines.png'
+import { resolvedTheme } from '@/theme/themeAuthority'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ShareDialog from '@/components/common/ShareDialog.vue'
 
@@ -79,6 +81,7 @@ const deletingSession = ref(null)
 const shareDialog = ref(false)
 const shareTitle = ref('分享对话')
 const shareUrl = ref('')
+const sidebarLogo = computed(() => resolvedTheme.value === 'dark' ? logoDark : logoLight)
 
 const primaryItems = [
   { path: '/home', label: '首页', icon: '<svg viewBox="0 0 24 24"><path d="M3 11 12 3l9 8v9H5v-9Z"/></svg>' },

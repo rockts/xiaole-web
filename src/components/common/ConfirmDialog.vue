@@ -2,14 +2,15 @@
   <teleport to="body">
     <transition name="modal">
       <div v-if="visible" class="modal-overlay" @click="handleCancel">
-        <div class="confirm-dialog" @click.stop>
-          <h3 class="confirm-title">{{ title }}</h3>
-          <p class="confirm-message">{{ message }}</p>
+        <div ref="dialogRef" class="confirm-dialog" role="dialog" aria-modal="true" :aria-labelledby="titleId" :aria-describedby="messageId" tabindex="-1" @click.stop @keydown.esc="handleCancel">
+          <h3 :id="titleId" class="confirm-title">{{ title }}</h3>
+          <p :id="messageId" class="confirm-message">{{ message }}</p>
           <div class="confirm-actions">
-            <button class="btn-cancel" @click="handleCancel">
+            <button type="button" class="btn-cancel" @click="handleCancel">
               {{ cancelText }}
             </button>
             <button
+              type="button"
               class="btn-confirm"
               :class="{ 'btn-danger': type === 'danger' }"
               @click="handleConfirm"
@@ -24,7 +25,14 @@
 </template>
 
 <script setup>
-defineProps({
+import { nextTick, ref, watch } from 'vue';
+
+const titleId = `confirm-title-${Math.random().toString(36).slice(2)}`;
+const messageId = `confirm-message-${Math.random().toString(36).slice(2)}`;
+const dialogRef = ref(null);
+let previousFocus = null;
+
+const props = defineProps({
   visible: {
     type: Boolean,
     default: false,
@@ -52,6 +60,18 @@ defineProps({
 });
 
 const emit = defineEmits(["confirm", "cancel"]);
+
+watch(() => props.visible, async (visible) => {
+  if (visible) {
+    previousFocus = document.activeElement;
+    await nextTick();
+    dialogRef.value?.focus();
+  } else if (previousFocus?.focus) {
+    await nextTick();
+    previousFocus.focus();
+    previousFocus = null;
+  }
+});
 
 const handleConfirm = () => {
   emit("confirm");
