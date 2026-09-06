@@ -86,6 +86,34 @@ export const useChatStore = defineStore('chat', () => {
     const typingTimer = ref(null)
     const activeTypingMessageId = ref(null)
     const activeStreamAbort = ref(null)
+
+    const findUserTurnBefore = (messageIndex) => {
+        for (let i = messageIndex - 1; i >= 0; i--) {
+            if (messages.value[i].role === 'user') return messages.value[i]
+        }
+        return null
+    }
+
+    const setRecoveryState = (message, kind, turn) => {
+        const interrupted = kind === 'stream_interrupted'
+        message.status = interrupted ? 'interrupted' : 'error'
+        message.recovery = {
+            kind,
+            message: interrupted
+                ? '回复中断'
+                : kind === 'empty_response'
+                    ? '小乐这次没有返回有效内容。'
+                    : '刚才没有发送成功。',
+            actionLabel: interrupted ? '重新生成' : '重试',
+            retryable: true,
+            retrying: false,
+            userMessageId: turn.userMessageId,
+            conversationId: turn.conversationId,
+            content: turn.content,
+            imagePath: turn.imagePath,
+            responseStyle: turn.responseStyle
+        }
+    }
     const sendMessage = async (content, imagePath = null, router = null, options = {}) => {
         try {
             const instant = !!options.instant // 语音模式：立即展示，不走打字动画
@@ -287,24 +315,35 @@ export const useChatStore = defineStore('chat', () => {
     // 流式发送消息（SSE 切片流）
     const sendUnifiedMessage = async (content, imagePath = null, router = null, options = {}) => {
         const responseStyle = options.responseStyle || 'balanced'
+        const retryMessageId = options.retryMessageId
+        const conversationId = options.conversationId ?? currentSessionId.value ?? null
+        let placeholderId = null
+        let wasAborted = false
+        let accumulated = ''
+        let failedTurn = null
 
         try {
             isTyping.value = true
 
             // 🔧 复用已存在的 thinking 占位消息（由 ChatView 提前添加）
             // 查找最后一条 status='thinking' 的 assistant 消息
-            let existingThinkingIndex = -1
-            for (let i = messages.value.length - 1; i >= 0; i--) {
-                if (messages.value[i].role === 'assistant' && messages.value[i].status === 'thinking') {
-                    existingThinkingIndex = i
-                    break
+            let existingThinkingIndex = retryMessageId
+                ? messages.value.findIndex(message => message.id === retryMessageId)
+                : -1
+            if (existingThinkingIndex === -1) {
+                for (let i = messages.value.length - 1; i >= 0; i--) {
+                    if (messages.value[i].role === 'assistant' && messages.value[i].status === 'thinking') {
+                        existingThinkingIndex = i
+                        break
+                    }
                 }
             }
 
-            let placeholderId
             if (existingThinkingIndex !== -1) {
                 // 复用已存在的 thinking 消息
                 placeholderId = messages.value[existingThinkingIndex].id
+                messages.value[existingThinkingIndex].content = ''
+                messages.value[existingThinkingIndex].status = 'thinking'
                 console.log('💭 Reusing existing thinking message:', placeholderId)
             } else {
                 // 如果不存在（例如从其他地方调用），创建新的
@@ -319,15 +358,26 @@ export const useChatStore = defineStore('chat', () => {
                 console.log('💭 Created new thinking message:', placeholderId)
             }
             activeTypingMessageId.value = placeholderId
+            const placeholderIndex = messages.value.findIndex(message => message.id === placeholderId)
+            const userTurn = findUserTurnBefore(placeholderIndex)
+            failedTurn = {
+                userMessageId: userTurn?.id || null,
+                conversationId,
+                content,
+                imagePath,
+                responseStyle
+            }
 
-            // 构建中止控制器
-            const controller = new AbortController()
-            activeStreamAbort.value = controller
+            const transport = createChatTransport({ streamChat: api.streamChat })
+            activeStreamAbort.value = {
+                abort: () => {
+                    wasAborted = true
+                    transport.cancel()
+                }
+            }
 
             // 首次 start 时切换为 typing
             let msgIndex = -1
-            let accumulated = ''
-
             const onStart = () => {
                 if (msgIndex === -1) {
                     msgIndex = messages.value.findIndex(m => m.id === placeholderId)
@@ -378,7 +428,12 @@ export const useChatStore = defineStore('chat', () => {
                             }
                         }
                     }
-                    messages.value[msgIndex].status = 'done'
+                    if (accumulated.trim()) {
+                        messages.value[msgIndex].status = 'done'
+                        delete messages.value[msgIndex].recovery
+                    } else {
+                        setRecoveryState(messages.value[msgIndex], 'empty_response', failedTurn)
+                    }
                 }
 
                 // 更新会话并路由
@@ -400,10 +455,9 @@ export const useChatStore = defineStore('chat', () => {
                 console.log('✅ Sessions refreshed after streamed message')
             }
 
-            const transport = createChatTransport({ streamChat: api.streamChat })
             await transport.send({
                 message: content,
-                conversationId: currentSessionId.value || null,
+                conversationId,
                 imagePath,
                 responseStyle,
                 callbacks: { onStart, onDelta, onEnd }
@@ -411,37 +465,47 @@ export const useChatStore = defineStore('chat', () => {
             console.log('📤 Sent message with session_id:', currentSessionId.value || null)
         } catch (error) {
             console.error('Failed to send message (stream):', error)
-            console.error('流式发送错误详情:', {
-                status: error.response?.status,
-                statusText: error.response?.statusText,
-                data: error.response?.data,
-                message: error.message,
-                config: error.config
-            })
-            if (activeTypingMessageId.value) {
-                const msgIndex = messages.value.findIndex(m => m.id === activeTypingMessageId.value)
+            if (wasAborted) {
+                const abortedIndex = messages.value.findIndex(m => m.id === placeholderId)
+                if (abortedIndex !== -1) {
+                    if (accumulated.trim()) messages.value[abortedIndex].status = 'done'
+                    else messages.value.splice(abortedIndex, 1)
+                }
+                return
+            }
+            if (placeholderId) {
+                const msgIndex = messages.value.findIndex(m => m.id === placeholderId)
                 if (msgIndex !== -1) {
-                    messages.value[msgIndex].status = 'done'
-                    let errText = '出错了，请稍后重试。'
-                    if (error.response?.status === 500) {
-                        errText = '服务器内部错误（500）。可能原因：\n1. 后端服务异常\n2. 图片路径格式不正确\n3. 请求参数有误\n\n请检查浏览器控制台的详细错误信息。'
-                    } else if (error.response?.data) {
-                        if (typeof error.response.data === 'string') {
-                            errText = error.response.data
-                        } else if (error.response.data.detail) {
-                            errText = error.response.data.detail
-                        } else if (error.response.data.message) {
-                            errText = error.response.data.message
-                        }
-                    } else if (error?.message) {
-                        errText = error.message
-                    }
-                    messages.value[msgIndex].content = `⚠️ ${errText}`
+                    setRecoveryState(
+                        messages.value[msgIndex],
+                        accumulated.trim() ? 'stream_interrupted' : 'request_failed',
+                        failedTurn
+                    )
                 }
             }
         } finally {
             isTyping.value = false
             activeStreamAbort.value = null
+        }
+    }
+
+    const retryMessage = async (message, router = null) => {
+        if (!message?.recovery?.retryable || message.recovery.retrying) return
+        const recovery = message.recovery
+        recovery.retrying = true
+        try {
+            await sendUnifiedMessage(
+                recovery.content,
+                recovery.imagePath,
+                router,
+                {
+                    responseStyle: recovery.responseStyle,
+                    retryMessageId: message.id,
+                    conversationId: recovery.conversationId
+                }
+            )
+        } finally {
+            if (message.recovery) message.recovery.retrying = false
         }
     }
 
@@ -558,6 +622,7 @@ export const useChatStore = defineStore('chat', () => {
         loadSessions,
         loadSession,
         sendUnifiedMessage,
+        retryMessage,
         stopGeneration,
         uploadImage,
         uploadDocument,

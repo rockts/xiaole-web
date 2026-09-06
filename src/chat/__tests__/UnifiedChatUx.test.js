@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import ChatView from '@/views/ChatView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import { migrateLegacyChatMode } from '../chatSettingsMigration'
+import { useChatStore } from '@/stores/chat'
 
 const { route, router, uploadDocument, getSession } = vi.hoisted(() => ({
   route: { params: {}, path: '/chat' },
@@ -107,6 +108,36 @@ describe('Phase B one user-visible Chat', () => {
     expect(wrapper.text()).toContain('普通历史消息')
     expect(wrapper.text()).toContain('新消息')
     expect(wrapper.text()).not.toMatch(/标准对话|兼容模式|Compatibility|Core2|Legacy|小乐\s*2\.0/)
+    wrapper.unmount()
+  })
+
+  it('renders a failed turn as an actionable recovery state without hiding the input', async () => {
+    const wrapper = mountChat()
+    const store = useChatStore(wrapper.vm.$pinia)
+    const retry = vi.spyOn(store, 'retryMessage').mockResolvedValue()
+    store.messages = [
+      { id: 'user-1', role: 'user', content: '原始问题', status: 'done' },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        content: '',
+        status: 'error',
+        recovery: {
+          kind: 'request_failed',
+          message: '刚才没有发送成功。',
+          actionLabel: '重试',
+          retryable: true,
+          retrying: false
+        }
+      }
+    ]
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('原始问题')
+    expect(wrapper.get('[role="status"]').text()).toContain('刚才没有发送成功。')
+    expect(wrapper.find('.message-editor[contenteditable="true"]').exists()).toBe(true)
+    await wrapper.get('[role="status"] button').trigger('click')
+    expect(retry).toHaveBeenCalledWith(expect.objectContaining({ id: 'assistant-1' }), router)
     wrapper.unmount()
   })
 

@@ -218,6 +218,11 @@
                   }"
                   v-html="renderMarkdown(getDisplayContent(message))"
                 ></div>
+                <ChatErrorRecovery
+                  v-if="message.recovery"
+                  :recovery="message.recovery"
+                  @retry="retryFailedMessage(message)"
+                />
                 <div
                   v-if="message.status === 'typing'"
                   class="typing-indicator"
@@ -1129,6 +1134,7 @@ import api from "@/services/api";
 
 import ShareDialog from "@/components/common/ShareDialog.vue";
 import VoiceModeDialog from "@/components/voice/VoiceModeDialog.vue";
+import ChatErrorRecovery from "@/components/chat/ChatErrorRecovery.vue";
 import { applyDraftToEditor, consumeHomeDraft } from "@/chat/homeDraft";
 
 const route = useRoute();
@@ -2051,6 +2057,11 @@ const regenerateMessage = async (message) => {
   } catch (e) {
     console.error("Regenerate failed:", e);
   }
+};
+
+const retryFailedMessage = async (message) => {
+  shouldScrollToBottom.value = true;
+  await chatStore.retryMessage(message, router);
 };
 
 const shareMessage = async (message) => {
