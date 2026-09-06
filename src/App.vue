@@ -162,6 +162,9 @@ watch(
 
 <style scoped>
 .app-layout {
+  --mobile-tab-bar-height: 56px;
+  --mobile-tab-bar-offset: calc(var(--mobile-tab-bar-height) + env(safe-area-inset-bottom));
+  --mobile-page-end-space: 32px;
   display: flex;
   height: 100vh;
   height: 100dvh; /* 移动端动态视口高度 */
@@ -190,12 +193,11 @@ watch(
 @media (max-width: 768px) {
   .app-layout {
     height: 100dvh;
-    height: calc(var(--app-vh, 100vh)); /* JS 计算的后备高度 */
   }
   .main-content {
     /* 移动端：TopBar 是 fixed，需要给内容留出顶部空间 */
     padding-top: var(--app-topbar-h, 52px);
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: var(--mobile-tab-bar-offset);
   }
 
   /* 聊天页：由内容区自身做 top offset，避免任何覆盖/嵌套滚动副作用 */
@@ -211,6 +213,10 @@ watch(
     min-height: 0;
   }
 
+  .content-wrapper:not(.is-chat-route) > :deep(main) {
+    padding-bottom: var(--mobile-page-end-space);
+  }
+
   /* 聊天页自身管理滚动，外层不要再滚动（避免嵌套滚动导致顶部遮挡/底部多余空白） */
   .content-wrapper.is-chat-route {
     overflow: hidden;
@@ -218,7 +224,13 @@ watch(
     top: var(--app-topbar-h, 52px);
     left: 0;
     right: 0;
-    bottom: calc(60px + env(safe-area-inset-bottom));
+    bottom: var(--mobile-tab-bar-offset);
+  }
+}
+
+@supports not (height: 100dvh) {
+  .app-layout {
+    height: calc(var(--app-vh, 100vh));
   }
 }
 </style>

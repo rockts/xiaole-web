@@ -68,7 +68,7 @@ describe('XiaoLe Phase A product shell', () => {
       '首页', '对话', '知识', '行动'
     ])
     expect(wrapper.findAll('[data-testid="recent-conversation"]')).toHaveLength(6)
-    expect(wrapper.get('[data-testid="view-all-conversations"]').attributes('href')).toBe('/conversations')
+    expect(wrapper.get('[data-testid="view-all-conversations"]').attributes('type')).toBe('button')
     expect(wrapper.get('[data-testid="settings-link"]').attributes('href')).toBe('/settings')
     expect(wrapper.text()).not.toContain('待办任务')
     expect(wrapper.text()).not.toContain('行为分析')
@@ -89,7 +89,23 @@ describe('XiaoLe Phase A product shell', () => {
     expect(wrapper.get('[data-testid="new-chat"]')).toBeTruthy()
     expect(wrapper.get('[data-testid="view-all-conversations"]')).toBeTruthy()
     expect(wrapper.get('[data-testid="settings-link"]')).toBeTruthy()
-    expect(wrapper.get('[data-testid="advanced-link"]').attributes('href')).toBe('/behavior')
+    expect(wrapper.get('[data-testid="advanced-link"]').attributes('type')).toBe('button')
+  })
+
+  it('navigates to mobile settings before making the drawer inert', async () => {
+    const wrapper = await mountShell(390)
+    await wrapper.vm.toggle()
+    const drawer = wrapper.get('.product-sidebar')
+
+    const navigation = wrapper.get('[data-testid="settings-link"]').trigger('click')
+    expect(drawer.attributes('aria-hidden')).toBe('false')
+    expect(drawer.attributes()).not.toHaveProperty('inert')
+
+    await navigation
+    await flushPromises()
+    expect(wrapper.vm.$route.path).toBe('/settings')
+    expect(drawer.attributes('aria-hidden')).toBe('true')
+    expect(drawer.attributes()).toHaveProperty('inert')
   })
 
   it('renders four mobile bottom destinations with touch-sized controls', async () => {

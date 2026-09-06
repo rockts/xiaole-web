@@ -37,8 +37,10 @@ const items = [
     bottom: 0;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: var(--mobile-tab-bar-offset);
     min-width: 0;
-    padding: 4px 6px max(4px, env(safe-area-inset-bottom));
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--border-light);
     background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
     backdrop-filter: blur(18px);
