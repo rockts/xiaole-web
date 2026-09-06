@@ -28,7 +28,7 @@ const sessions = Array.from({ length: 9 }, (_, index) => ({
   pinned: false
 }))
 
-const mountShell = async (width) => {
+const mountShell = async (width, startPath = '/chat/s1') => {
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: width })
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -36,7 +36,7 @@ const mountShell = async (width) => {
   store.sessions = sessions
   store.loadSessions = vi.fn().mockResolvedValue()
   const router = createRouter({ history: createMemoryHistory(), routes })
-  await router.push('/chat/s1')
+  await router.push(startPath)
   await router.isReady()
   const wrapper = mount(SidebarModern, { global: { plugins: [pinia, router] } })
   await flushPromises()
@@ -79,11 +79,14 @@ describe('XiaoLe Phase A product shell', () => {
   it('renders a compact mobile drawer with five conversations and no duplicated primary navigation', async () => {
     const wrapper = await mountShell(390)
     const drawer = wrapper.get('.product-sidebar')
+    const closedDrawerElement = drawer.element
     expect(drawer.attributes('aria-hidden')).toBe('true')
     expect(drawer.attributes()).toHaveProperty('inert')
     await wrapper.vm.toggle()
-    expect(drawer.attributes('aria-hidden')).toBe('false')
-    expect(drawer.attributes()).not.toHaveProperty('inert')
+    const openDrawer = wrapper.get('.product-sidebar')
+    expect(openDrawer.element).not.toBe(closedDrawerElement)
+    expect(openDrawer.attributes('aria-hidden')).toBe('false')
+    expect(openDrawer.attributes()).not.toHaveProperty('inert')
     expect(wrapper.findAll('[data-testid="primary-nav-item"]')).toHaveLength(0)
     expect(wrapper.findAll('[data-testid="recent-conversation"]')).toHaveLength(5)
     expect(wrapper.get('[data-testid="new-chat"]')).toBeTruthy()
@@ -104,8 +107,30 @@ describe('XiaoLe Phase A product shell', () => {
     await navigation
     await flushPromises()
     expect(wrapper.vm.$route.path).toBe('/settings')
-    expect(drawer.attributes('aria-hidden')).toBe('true')
-    expect(drawer.attributes()).toHaveProperty('inert')
+    expect(wrapper.get('.product-sidebar').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.get('.product-sidebar').attributes()).toHaveProperty('inert')
+  })
+
+  it('uses the same mobile navigation path for new chat and two recent conversations', async () => {
+    const wrapper = await mountShell(390, '/home')
+
+    await wrapper.vm.toggle()
+    await wrapper.findAll('.recent-main')[0].trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$route.path).toBe('/chat/s1')
+    expect(wrapper.get('.product-sidebar').attributes()).toHaveProperty('inert')
+
+    await wrapper.vm.toggle()
+    await wrapper.findAll('.recent-main')[1].trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$route.path).toBe('/chat/s2')
+    expect(wrapper.get('.product-sidebar').attributes()).toHaveProperty('inert')
+
+    await wrapper.vm.toggle()
+    await wrapper.get('[data-testid="new-chat"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$route.path).toBe('/chat')
+    expect(wrapper.get('.product-sidebar').attributes()).toHaveProperty('inert')
   })
 
   it('renders four mobile bottom destinations with touch-sized controls', async () => {
@@ -117,5 +142,11 @@ describe('XiaoLe Phase A product shell', () => {
       '首页', '对话', '知识', '行动'
     ])
     expect(wrapper.get('[data-testid="mobile-bottom-nav"]').classes()).toContain('mobile-bottom-nav')
+
+    for (const [label, path] of [['对话', '/chat'], ['知识', '/knowledge'], ['行动', '/action'], ['首页', '/home']]) {
+      await wrapper.get(`[aria-label="${label}"]`).trigger('click')
+      await flushPromises()
+      expect(router.currentRoute.value.path).toBe(path)
+    }
   })
 })

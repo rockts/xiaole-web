@@ -23,4 +23,14 @@ describe('mobile viewport and bottom navigation layout contract', () => {
     expect(app).toContain('--mobile-page-end-space: 32px')
     expect(app).toContain('padding-bottom: var(--mobile-page-end-space)')
   })
+
+  it('keeps the backdrop below the drawer and above the bottom navigation', () => {
+    const sidebar = source('../SidebarModern.vue')
+    const bottomNav = source('../MobileBottomNav.vue')
+
+    expect(sidebar).toMatch(/\.product-sidebar\{[^}]*z-index:900/)
+    expect(sidebar).toMatch(/\.product-sidebar-backdrop\{[^}]*z-index:880/)
+    expect(sidebar).not.toContain('class="sidebar-overlay"')
+    expect(bottomNav).toMatch(/\.mobile-bottom-nav \{[\s\S]*?z-index: 850/)
+  })
 })
