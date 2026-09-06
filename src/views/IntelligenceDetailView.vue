@@ -4,28 +4,41 @@
     <div v-if="loading" class="state">正在加载通知详情…</div>
     <div v-else-if="failed" class="state">通知详情暂时无法完整加载</div>
     <article v-else-if="item">
-      <header><span class="read-state">{{ item.is_read ? '已读' : '未读' }}</span><span>{{ item.delivery_label }}</span></header>
+      <header><span class="read-state">{{ item.is_read ? '已读' : '未读' }}</span><span v-if="relevanceLabel" class="relevance">{{ relevanceLabel }}</span></header>
       <h1>{{ item.title }}</h1>
       <p class="source">{{ item.source_name }}</p>
-      <div class="facts"><span>{{ item.assessment_label }}</span><span>{{ item.status_label }}</span><span>intelligence status: {{ item.intelligence_status }}</span><span>assessment kind: {{ item.assessment_kind }}</span><span v-if="item.deadline">截止 {{ item.deadline }}</span></div>
+      <section class="user-details" data-test="user-details">
+        <h2>这件事与你的关系</h2>
+        <p v-if="item.why_relevant">{{ item.why_relevant }}</p>
+        <p v-if="item.status_label">{{ item.status_label }}</p>
+        <p v-if="item.eligibility">适用情况：{{ displayValue(item.eligibility) }}</p>
+        <p v-if="item.evidence_boundary">信息边界：{{ displayValue(item.evidence_boundary) }}</p>
+        <p v-if="item.deadline">截止 {{ item.deadline }}</p>
+      </section>
       <aside v-if="item.completeness_notice" class="partial">{{ item.completeness_notice }}<br />附件尚未完整获取，需要确认</aside>
-      <section v-if="item.why_relevant"><h2>为什么与你相关</h2><p>{{ item.why_relevant }}</p></section>
       <a v-if="item.official_url" data-test="official-url" class="official" style="min-height: 44px" :href="item.official_url" target="_blank" rel="noopener noreferrer">打开原始官方页面</a>
+      <details class="technical-details" data-test="technical-details">
+        <summary>技术信息</summary>
+        <div class="facts"><span v-if="item.assessment_label">{{ item.assessment_label }}</span><span v-if="item.delivery_label">{{ item.delivery_label }}</span><span v-if="item.intelligence_status">intelligence status: {{ item.intelligence_status }}</span><span v-if="item.assessment_kind">assessment kind: {{ item.assessment_kind }}</span><span v-if="item.reconciliation_status">reconciliation: {{ displayValue(item.reconciliation_status) }}</span><span v-if="item.provenance">provenance: {{ displayValue(item.provenance) }}</span></div>
+      </details>
       <p v-if="readFailed" class="read-error">已读状态暂时未能保存，请稍后再试。</p>
     </article>
   </main>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 const route = useRoute(); const router = useRouter(); const item = ref(null); const loading = ref(true); const failed = ref(false); const readFailed = ref(false)
+const normalizedRelevance = computed(() => String(item.value?.relevance_level || item.value?.personal_relevance?.level || '').toUpperCase())
+const relevanceLabel = computed(() => ({ WORTH_ATTENTION: '值得关注', RELATED: '与你相关', BACKGROUND_ONLY: '背景信息', IRRELEVANT: '无需关注' }[normalizedRelevance.value] || ''))
+const displayValue = (value) => ['string', 'number', 'boolean'].includes(typeof value) ? String(value) : ''
 const load = async () => { try { item.value = await api.getIntelligenceInboxDetail(route.params.eventId); if (!item.value.is_read) { try { await api.markIntelligenceRead(route.params.eventId); item.value = { ...item.value, is_read: true } } catch { readFailed.value = true } } } catch { failed.value = true } finally { loading.value = false } }
 onMounted(load)
 </script>
 
 <style scoped>
-.detail-view{box-sizing:border-box;width:min(100% - 48px,820px);margin:0 auto;padding:34px 0 120px;overflow-x:hidden}.back{min-height:44px;padding:0;border:0;background:transparent;color:var(--primary-color);cursor:pointer}article{min-width:0;margin-top:20px}article header{display:flex;justify-content:space-between;gap:12px;color:var(--text-secondary);font-size:13px}h1{overflow-wrap:anywhere;margin:18px 0 10px;font-size:34px;line-height:1.35}.source{color:var(--text-secondary)}.facts{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}.facts span{overflow-wrap:anywhere;padding:7px 10px;border-radius:999px;background:var(--bg-secondary);font-size:13px}.partial{margin:22px 0;padding:17px;border-left:4px solid #d5a43b;border-radius:12px;background:var(--bg-secondary);line-height:1.7}.official{display:flex;min-height:44px;width:max-content;max-width:100%;align-items:center;margin-top:28px;color:var(--primary-color);overflow-wrap:anywhere}.state{padding:28px;color:var(--text-secondary)}.read-error{color:#b36b2c}
+.detail-view{box-sizing:border-box;width:min(100% - 48px,820px);margin:0 auto;padding:34px 0 120px;overflow-x:hidden}.back{min-height:44px;padding:0;border:0;background:transparent;color:var(--primary-color);cursor:pointer}article{min-width:0;margin-top:20px}article header{display:flex;justify-content:space-between;gap:12px;color:var(--text-secondary);font-size:13px}.relevance{color:#a36e1f}h1{overflow-wrap:anywhere;margin:18px 0 10px;font-size:34px;line-height:1.35}.source{color:var(--text-secondary)}.user-details{margin-top:30px}.user-details h2{font-size:20px}.user-details p{color:var(--text-secondary);line-height:1.7}.facts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.facts span{overflow-wrap:anywhere;padding:7px 10px;border-radius:999px;background:var(--bg-secondary);font-size:13px}.partial{margin:22px 0;padding:17px;border-left:4px solid #d5a43b;border-radius:12px;background:var(--bg-secondary);line-height:1.7}.official{display:flex;min-height:44px;width:max-content;max-width:100%;align-items:center;margin-top:28px;color:var(--primary-color);overflow-wrap:anywhere}.technical-details{margin-top:34px;padding-top:14px;border-top:1px solid var(--border-light);color:var(--text-secondary)}.technical-details summary{min-height:44px;cursor:pointer;font-size:13px}.state{padding:28px;color:var(--text-secondary)}.read-error{color:#b36b2c}
 @media(max-width:768px){.detail-view{width:min(100% - 24px,820px);padding:20px 0 calc(100px + env(safe-area-inset-bottom))}h1{font-size:27px}.facts{align-items:flex-start;flex-direction:column}.official{width:100%}}
 </style>

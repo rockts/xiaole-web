@@ -43,17 +43,6 @@
         <div v-else class="gentle-empty" data-test="recommendations-empty">{{ home.recommendations.empty_message || '目前没有需要优先处理的事项。' }}</div>
       </section>
 
-      <section class="home-section intelligence-section" data-home-section="intelligence">
-        <header class="section-header"><div><p class="section-kicker">系统曾通知过你</p><h2>最近通知</h2></div><button type="button" class="section-link" data-test="all-notifications" @click="router.push('/intelligence')">查看全部</button></header>
-        <p v-if="inboxFailed || inboxDegraded" class="gentle-empty compact" data-test="home-inbox-degraded">通知历史暂时无法完整加载</p>
-        <div v-if="recentNotifications.length" class="notification-preview-list">
-          <button v-for="item in recentNotifications" :key="item.event_id" type="button" data-test="home-notification" @click="router.push(`/intelligence/${encodeURIComponent(item.event_id)}`)">
-            <span class="preview-copy"><strong>{{ item.title }}</strong><small>{{ notificationSummary(item) }}</small></span><span class="preview-status">{{ item.is_read ? '已读' : '未读' }} · {{ item.delivery_label }}</span>
-          </button>
-        </div>
-        <p v-else-if="!inboxFailed" class="gentle-empty compact">还没有可显示的通知。</p>
-      </section>
-
       <section class="home-section ask-section" data-home-section="ask">
         <div class="ask-heading"><p class="section-kicker">随时可以开始</p><h2>问小乐</h2><p>把你正在想的事告诉我，或者从下面选一个问题。</p></div>
         <form class="ask-box" @submit.prevent="ask(customQuestion)">
@@ -65,11 +54,14 @@
         </div>
       </section>
 
-      <section v-if="showProfile" class="quiet-section profile-section" data-home-section="profile">
-        <details>
-          <summary><span><strong>让小乐更懂你</strong><small>为了让推荐更准确，还有 {{ confirmationStore.pendingCount }} 项资料需要确认。</small></span><button type="button" class="summary-action" data-test="view-profile-confirmations" @click.stop="viewProfileConfirmations">查看</button></summary>
-          <div class="profile-fields"><p>这些资料需要由你确认后，才会作为小乐了解你的正式信息。</p></div>
-        </details>
+      <section class="home-section intelligence-section" :class="{ quiet: !recentNotifications.length }" data-home-section="intelligence">
+        <header class="section-header"><div><p class="section-kicker">{{ recentNotifications.length ? '需要你留意' : '通知' }}</p><h2>{{ recentNotifications.length ? '一件值得看的事' : '最近通知' }}</h2></div><button type="button" class="section-link" data-test="all-notifications" @click="router.push('/intelligence')">查看全部通知</button></header>
+        <p v-if="inboxFailed || inboxDegraded" class="gentle-empty compact" data-test="home-inbox-degraded">通知历史暂时无法完整加载</p>
+        <div v-if="recentNotifications.length" class="notification-preview-list">
+          <button v-for="item in recentNotifications" :key="item.event_id" type="button" data-test="home-notification" @click="router.push(`/intelligence/${encodeURIComponent(item.event_id)}`)">
+            <span class="preview-copy"><strong>{{ item.title }}</strong><small v-if="item.why_relevant">{{ item.why_relevant }}</small></span><span class="preview-status">{{ item.deadline ? `截止 ${item.deadline}` : '查看详情' }}</span>
+          </button>
+        </div>
       </section>
 
       <section class="home-section recent-section" data-home-section="recent">
@@ -78,6 +70,13 @@
           <button v-for="conversation in recentConversations" :key="conversation.session_id" type="button" data-test="recent-conversation" @click="openConversation(conversation)"><span>{{ conversation.title || '未命名对话' }}</span><time>{{ formatConversationTime(conversation.updated_at || conversation.created_at) }}</time></button>
         </div>
         <p v-else class="gentle-empty compact" data-test="recent-empty">暂时没有最近对话，新的讨论会出现在这里。</p>
+      </section>
+
+      <section v-if="showProfile" class="quiet-section profile-section" data-home-section="profile">
+        <details>
+          <summary><span><strong>让小乐更懂你</strong><small>为了让推荐更准确，还有 {{ confirmationStore.pendingCount }} 项资料需要确认。</small></span><button type="button" class="summary-action" data-test="view-profile-confirmations" @click.stop="viewProfileConfirmations">查看</button></summary>
+          <div class="profile-fields"><p>这些资料需要由你确认后，才会作为小乐了解你的正式信息。</p></div>
+        </details>
       </section>
 
       <section class="quiet-section notification-section" data-home-section="no-notification">
@@ -89,7 +88,7 @@
 
       <section class="systems-section" data-home-section="systems">
         <div class="systems-heading"><span class="overall-dot" :class="{ issue: hasSystemIssue }"></span><div><h2>服务状态</h2><p>{{ hasSystemIssue ? '部分服务状态需要留意' : '各项服务正常' }}</p></div></div>
-        <div class="system-list"><article v-for="system in systemList" :key="system.key" :class="system.status"><span>{{ system.userLabel }}</span><small>{{ system.message }}</small></article></div>
+        <div v-if="hasSystemIssue" class="system-list" data-test="system-details"><article v-for="system in systemList" :key="system.key" :class="system.status"><span>{{ system.userLabel }}</span><small>{{ system.message }}</small></article></div>
       </section>
     </template>
   </main>
@@ -113,10 +112,9 @@ const inboxItems = ref([])
 const inboxFailed = ref(false)
 const inboxDegraded = ref(false)
 
-const visibleRecommendations = computed(() => home.value?.recommendations?.items?.slice(0, 3) || [])
+const visibleRecommendations = computed(() => home.value?.recommendations?.items?.slice(0, 1) || [])
 const recentConversations = computed(() => home.value?.recent_conversations?.slice(0, 4) || [])
 const recentNotifications = computed(() => selectHomeIntelligenceItems(inboxItems.value))
-const notificationSummary = (item) => [item.source_name, item.assessment_label, item.status_label].filter(Boolean).join(' · ')
 const showProfile = computed(() => confirmationStore.pendingCount > 0)
 const isStale = computed(() => home.value?.cache?.status === 'stale')
 const systemList = computed(() => Object.entries(home.value?.systems || {}).map(([key, system]) => ({ ...system, key, userLabel: { brain: '小乐', memory: '知识服务', action: '行动服务' }[key] || system.label })))
@@ -144,4 +142,7 @@ onMounted(() => { load(); loadInbox(); confirmationStore.load() })
 @media(max-width:768px){.home-view{width:min(100% - 24px,1040px);padding:24px 0 calc(94px + env(safe-area-inset-bottom))}.today-section{margin-bottom:38px;padding:28px 22px 18px;border-radius:22px}.today-section h1{font-size:38px}.today-summary{font-size:21px}.fact-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.home-section{margin-bottom:40px}.section-header{align-items:start}.section-header h2,.ask-heading h2{font-size:24px}.section-note{display:none}.ask-section{padding:22px 16px;border-radius:20px}.quick-list{flex-direction:column}.quick-list button{width:100%;border-radius:13px;text-align:left}.quiet-section{margin-bottom:34px}.quiet-section summary{min-height:78px}.recent-list{grid-template-columns:1fr}.recent-list button{min-height:48px}.systems-section{align-items:flex-start;flex-direction:column;gap:16px}.system-list{justify-content:flex-start;gap:8px 14px;width:100%}}
 .summary-action{min-width:44px;min-height:44px;border:0;background:transparent;cursor:pointer}
 .section-link{min-height:44px;border:0;background:transparent;color:var(--primary-color);cursor:pointer}.notification-preview-list{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.notification-preview-list button{display:flex;min-width:0;min-height:64px;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border:1px solid var(--border-light);border-radius:14px;background:var(--bg-secondary);color:var(--text-primary);text-align:left;cursor:pointer}.preview-copy{display:flex;min-width:0;flex-direction:column;gap:5px}.preview-copy strong,.preview-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.preview-copy small,.preview-status{color:var(--text-secondary);font-size:12px}.preview-status{flex:0 0 auto}
+.intelligence-section.quiet{margin-bottom:38px;padding:4px 0;border-top:1px solid var(--border-light);border-bottom:1px solid var(--border-light)}.intelligence-section.quiet .section-header{min-height:70px;align-items:center;margin:0}.intelligence-section.quiet .section-kicker{display:none}.intelligence-section.quiet h2{font-size:18px;font-weight:600}
+.today-section{margin-bottom:38px;padding:30px 36px 18px}.today-section h1{margin-bottom:10px;font-size:clamp(34px,4vw,46px)}.today-summary{font-size:clamp(19px,2vw,25px)}.scan-summary{margin-top:10px}.today-details{margin-top:16px}.home-section{margin-bottom:40px}.section-header{margin-bottom:14px}
+@media(max-width:768px){.today-section{margin-bottom:28px;padding:24px 20px 16px}.today-section h1{font-size:34px}.today-summary{font-size:20px}.home-section{margin-bottom:28px}.intelligence-section.quiet{margin-bottom:24px}.intelligence-section.quiet .section-header{min-height:64px}.intelligence-section.quiet h2{font-size:17px}}
 </style>

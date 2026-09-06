@@ -9,62 +9,42 @@ const item = (eventId, overrides = {}) => ({
 })
 
 describe('selectHomeIntelligenceItems', () => {
-  it('elevates the eleventh actionable unread event above earlier Inbox history', () => {
+  it('returns only the first governed attention event for Home', () => {
     const items = Array.from({ length: 11 }, (_, index) => item(`event-${index + 1}`))
     items[10] = item('gansu-trace', { requires_user_attention: true })
 
-    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual([
-      'gansu-trace',
-      'event-1',
-      'event-2',
-    ])
+    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual(['gansu-trace'])
   })
 
-  it('keeps Inbox order among multiple actionable unread events', () => {
+  it('uses explicit worth-attention relevance when available', () => {
     const items = [
-      item('ordinary-first'),
-      item('attention-first', { requires_user_attention: true }),
-      item('attention-second', { requires_user_attention: true }),
-      item('ordinary-second'),
+      item('ordinary-unread'),
+      item('worth-attention', { relevance_level: 'WORTH_ATTENTION', is_read: true }),
     ]
 
-    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual([
-      'attention-first',
-      'attention-second',
-      'ordinary-first',
-    ])
+    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual(['worth-attention'])
   })
 
-  it('prioritizes ordinary unread events when no attention event exists', () => {
+  it('does not promote unread, delivered, assessed, or starred items without governed attention', () => {
     const items = [
-      item('read-first', { is_read: true }),
-      item('unread-first'),
-      item('read-second', { is_read: true }),
-      item('unread-second'),
+      item('ordinary-unread'),
+      item('delivered', { delivery_status: 'sent' }),
+      item('assessed', { assessment_kind: 'formal', stars: 5 }),
     ]
 
-    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual([
-      'unread-first',
-      'unread-second',
-      'read-first',
-    ])
+    expect(selectHomeIntelligenceItems(items)).toEqual([])
   })
 
-  it('fills remaining slots with read events in Inbox order', () => {
+  it('accepts lowercase governed relevance without recalculating it', () => {
     const items = [
-      item('read-first', { is_read: true }),
-      item('unread-only'),
-      item('read-second', { is_read: true }),
+      item('related', { relevance_level: 'related' }),
+      item('worth', { relevance_level: 'worth_attention' }),
     ]
 
-    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual([
-      'unread-only',
-      'read-first',
-      'read-second',
-    ])
+    expect(selectHomeIntelligenceItems(items).map(({ event_id }) => event_id)).toEqual(['worth'])
   })
 
-  it('deduplicates event ids and never returns more than the requested limit', () => {
+  it('deduplicates event ids and keeps one lightweight Home highlight', () => {
     const items = [
       item('attention', { requires_user_attention: true }),
       item('attention', { requires_user_attention: true }),
@@ -73,11 +53,7 @@ describe('selectHomeIntelligenceItems', () => {
       item('read-one', { is_read: true }),
     ]
 
-    expect(selectHomeIntelligenceItems(items, 3).map(({ event_id }) => event_id)).toEqual([
-      'attention',
-      'unread-one',
-      'unread-two',
-    ])
+    expect(selectHomeIntelligenceItems(items, 3).map(({ event_id }) => event_id)).toEqual(['attention'])
     expect(items.map(({ event_id }) => event_id)).toEqual([
       'attention',
       'attention',

@@ -33,6 +33,7 @@ const notificationItems = Array.from({ length: 11 }, (_, index) => ({
   delivery_label: '已发送',
   is_read: false,
   requires_user_attention: index === 10,
+  why_relevant: index === 10 ? '与你正在推进的教育数字化课题有关。' : null,
 }))
 const confirmationItems = Array.from({ length: 4 }, (_, index) => ({ key: `field-${index}`, label: `资料 ${index}`, state: 'needs_confirmation', candidate_value: null, input_type: 'text', options: [], version: 'a'.repeat(64) }))
 const mountHome = async (overrides = {}, confirmations = confirmationItems) => {
@@ -48,25 +49,32 @@ const mountHome = async (overrides = {}, confirmations = confirmationItems) => {
 describe('Home 2.0 productization', () => {
   beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); setActivePinia(createPinia()) })
 
-  it('renders the seven product sections in the approved order', async () => {
+  it('puts Today, recommendations, Ask XiaoLe, and one governed highlight first', async () => {
     const wrapper = await mountHome()
-    expect(wrapper.findAll('[data-home-section]').map((section) => section.attributes('data-home-section'))).toEqual(['today', 'recommendations', 'intelligence', 'ask', 'profile', 'recent', 'no-notification', 'systems'])
+    expect(wrapper.findAll('[data-home-section]').map((section) => section.attributes('data-home-section'))).toEqual(['today', 'recommendations', 'ask', 'intelligence', 'recent', 'profile', 'no-notification', 'systems'])
     expect(wrapper.get('[data-home-section="today"] h1').text()).toBe('今天')
     expect(wrapper.get('[data-home-section="today"]').text()).toContain('今天有 2 件值得你关注的事。')
   })
 
-  it('selects the eleventh actionable unread notification without changing recommendations', async () => {
+  it('shows only one governed attention highlight without backend status noise', async () => {
     const wrapper = await mountHome()
     const notifications = wrapper.get('[data-home-section="intelligence"]')
-    expect(notifications.findAll('[data-test="home-notification"]')).toHaveLength(3)
+    expect(notifications.findAll('[data-test="home-notification"]')).toHaveLength(1)
     expect(notifications.text()).toContain('甘肃教育数字化课题通知')
-    expect(notifications.text()).toContain('未读')
-    expect(notifications.text()).toContain('临时评估 4星')
-    expect(notifications.text()).toContain('已发送')
-    expect(notifications.text()).toContain('附件尚未完整获取，需要确认')
+    expect(notifications.text()).toContain('与你正在推进的教育数字化课题有关。')
+    expect(notifications.text()).not.toContain('未读')
+    expect(notifications.text()).not.toContain('临时评估 4星')
+    expect(notifications.text()).not.toContain('已发送')
     expect(wrapper.get('[data-home-section="recommendations"]')).not.toBe(notifications)
     await notifications.get('[data-test="all-notifications"]').trigger('click')
     expect(push).toHaveBeenCalledWith('/intelligence')
+  })
+
+  it('does not turn ordinary unread notifications into a Home highlight', async () => {
+    api.getIntelligenceInbox.mockResolvedValueOnce({ degraded: false, items: notificationItems.map((item) => ({ ...item, requires_user_attention: false, relevance_level: undefined })) })
+    const wrapper = await mountHome()
+    expect(wrapper.findAll('[data-test="home-notification"]')).toHaveLength(0)
+    expect(wrapper.get('[data-home-section="intelligence"]').text()).toContain('查看全部通知')
   })
 
   it('keeps Home recommendations profile and action status when Inbox fails', async () => {
@@ -75,15 +83,15 @@ describe('Home 2.0 productization', () => {
     expect(wrapper.get('[data-home-section="intelligence"]').text()).toContain('通知历史暂时无法完整加载')
     expect(wrapper.get('[data-home-section="recommendations"]').text()).toContain('推荐事项 1')
     expect(wrapper.get('[data-home-section="profile"]').exists()).toBe(true)
-    expect(wrapper.get('[data-home-section="systems"]').text()).toContain('行动服务')
+    expect(wrapper.get('[data-home-section="systems"]').text()).toContain('各项服务正常')
     expect(wrapper.text()).not.toContain('raw history error')
   })
 
-  it('shows at most three recommendations while preserving order and useful details', async () => {
+  it('shows only the backend-ranked top recommendation with useful details', async () => {
     const wrapper = await mountHome()
     const cards = wrapper.findAll('[data-test="recommendation-card"]')
-    expect(cards).toHaveLength(3)
-    expect(cards.map((card) => card.get('h3').text())).toEqual(['推荐事项 1', '推荐事项 2', '推荐事项 3'])
+    expect(cards).toHaveLength(1)
+    expect(cards.map((card) => card.get('h3').text())).toEqual(['推荐事项 1'])
     expect(cards[0].text()).toContain('与你关注的科技教育方向有关')
     expect(cards[0].text()).toContain('截止 2026-10-20')
     expect(cards[0].get('a').attributes('rel')).toContain('noopener')
@@ -161,6 +169,7 @@ describe('Home 2.0 productization', () => {
     expect(wrapper.find('[data-test="system-alert"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-home-section]').at(-1).attributes('data-home-section')).toBe('systems')
     expect(wrapper.get('[data-home-section="systems"]').text()).toContain('各项服务正常')
+    expect(wrapper.find('[data-test="system-details"]').exists()).toBe(false)
   })
 
   it('shows stale cache and degradation language without technical details', async () => {
