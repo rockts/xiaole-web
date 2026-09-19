@@ -36,7 +36,7 @@
       </aside>
 
       <section class="home-section recommendations-section" data-home-section="recommendations">
-        <header class="section-header"><div><p class="section-kicker">为你整理</p><h2>值得关注</h2></div><span v-if="visibleRecommendations.length" class="section-note">优先显示 {{ visibleRecommendations.length }} 项</span></header>
+        <header class="section-header"><div><p class="section-kicker">为你整理</p><h2>值得关注</h2></div><span v-if="recommendationUpdate" class="section-note">乐知最近更新：{{ recommendationUpdate }}</span></header>
         <div v-if="visibleRecommendations.length" class="recommendation-list">
           <RecommendationCard v-for="item in visibleRecommendations" :key="`${item.title}-${item.published_at}`" :item="item" />
         </div>
@@ -112,7 +112,8 @@ const inboxItems = ref([])
 const inboxFailed = ref(false)
 const inboxDegraded = ref(false)
 
-const visibleRecommendations = computed(() => home.value?.recommendations?.items?.slice(0, 1) || [])
+const visibleRecommendations = computed(() => home.value?.recommendations?.items || [])
+const recommendationUpdate = computed(() => home.value?.recommendations?.source_updated_at ? formatTime(home.value.recommendations.source_updated_at) : '')
 const recentConversations = computed(() => home.value?.recent_conversations?.slice(0, 4) || [])
 const recentNotifications = computed(() => selectHomeIntelligenceItems(inboxItems.value))
 const showProfile = computed(() => confirmationStore.pendingCount > 0)

@@ -8,12 +8,12 @@ vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
 vi.mock('../../services/api', () => ({ default: { getHome: vi.fn(), getProfileConfirmations: vi.fn(), getIntelligenceInbox: vi.fn() } }))
 import api from '../../services/api'
 
-const recommendation = (index = 1) => ({ stars: 5, title: `推荐事项 ${index}`, source: '中国科协', published_at: '2026-08-01', deadline: '2026-10-20', reason: '与你关注的科技教育方向有关', eligibility: { self: 'unknown', students: 'eligible', school: 'possible' }, action: { label: '查看详情' }, open_url: index === 1 ? 'https://example.com/item' : null })
+const recommendation = (index = 1) => ({ stars: 5, title: `推荐事项 ${index}`, source: '中国科协', published_at: '2026-08-01', deadline: '2026-10-20', reason: '与你关注的科技教育方向有关', freshness_state: index === 1 ? 'new' : 'current', eligibility: { self: 'unknown', students: 'eligible', school: 'possible' }, action: { label: '查看详情' }, open_url: index === 1 ? 'https://example.com/item' : null })
 
 const model = {
   cache: { status: 'fresh' },
   today: { status: 'available', date: '2026-08-22', summary: '今天有 2 件值得你关注的事。', sources: { healthy: 5, unhealthy: 0 }, new_discovered: 2, relevant: 2, notified: 0, last_scan_at: '2026-08-22T08:00:00+08:00', next_scan_at: '2026-08-22T12:00:00+08:00' },
-  recommendations: { status: 'available', empty_message: '目前没有需要优先处理的事项。', items: Array.from({ length: 5 }, (_, index) => recommendation(index + 1)) },
+  recommendations: { status: 'available', source_updated_at: '2026-08-22T16:32:00+08:00', empty_message: '目前没有新的高相关事项。', items: Array.from({ length: 3 }, (_, index) => recommendation(index + 1)) },
   no_notification_summary: { status: 'available', period_days: 7, summary: '最近没有达到主动通知门槛。', true_new: 1, categories: [{ code: 'low_relevance', label: '低相关未通知', count: 1 }, { code: 'expired', label: '已过期', count: 2 }] },
   systems: { brain: { status: 'healthy', label: '小乐 Brain', message: '正常' }, memory: { status: 'healthy', label: '乐知 Memory', message: '正常' }, action: { status: 'healthy', label: '小可 Action', message: '正常' } },
   profile_status: { status: 'available', needs_confirmation_count: 2, message: '还有 2 项资料需要确认', fields: [{ key: 'role', label: '当前身份', value: '待确认' }] },
@@ -87,19 +87,22 @@ describe('Home 2.0 productization', () => {
     expect(wrapper.text()).not.toContain('raw history error')
   })
 
-  it('shows only the backend-ranked top recommendation with useful details', async () => {
+  it('shows zero to three backend-ranked recommendations without client reranking', async () => {
     const wrapper = await mountHome()
     const cards = wrapper.findAll('[data-test="recommendation-card"]')
-    expect(cards).toHaveLength(1)
-    expect(cards.map((card) => card.get('h3').text())).toEqual(['推荐事项 1'])
+    expect(cards).toHaveLength(3)
+    expect(cards.map((card) => card.get('h3').text())).toEqual(['推荐事项 1', '推荐事项 2', '推荐事项 3'])
     expect(cards[0].text()).toContain('与你关注的科技教育方向有关')
     expect(cards[0].text()).toContain('截止 2026-10-20')
     expect(cards[0].get('a').attributes('rel')).toContain('noopener')
+    expect(cards[0].text()).toContain('新')
+    expect(cards[0].text()).toContain('建议核实资格')
+    expect(wrapper.get('[data-home-section="recommendations"]').text()).toContain('乐知最近更新：16:32')
   })
 
   it('renders a calm recommendation empty state', async () => {
     const wrapper = await mountHome({ recommendations: { ...model.recommendations, items: [] } })
-    expect(wrapper.get('[data-test="recommendations-empty"]').text()).toBe('目前没有需要优先处理的事项。')
+    expect(wrapper.get('[data-test="recommendations-empty"]').text()).toBe('目前没有新的高相关事项。')
   })
 
   it('quick questions only prefill Chat and do not create a transport preference', async () => {

@@ -2,6 +2,7 @@
   <article class="recommendation-card" data-test="recommendation-card">
     <div class="recommendation-main">
       <div class="recommendation-meta">
+        <span v-if="item.freshness_state === 'new'" class="new-badge">新</span>
         <span v-if="item.source">{{ item.source }}</span>
         <span v-if="item.deadline" class="deadline">截止 {{ item.deadline }}</span>
       </div>
@@ -20,7 +21,7 @@
 
 <script setup>
 defineProps({ item: { type: Object, required: true } })
-const label = (value) => ({ eligible: '适合', possible: '可能适合', ineligible: '不适合', unknown: '待确认' }[value] || '待确认')
+const label = (value) => ({ eligible: '适合', possible: '建议核实资格', ineligible: '不适合', unknown: '建议核实资格' }[value] || '建议核实资格')
 </script>
 
 <style scoped>
