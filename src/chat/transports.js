@@ -4,13 +4,14 @@ export class UnifiedChatTransport {
     this.controller = null
   }
 
-  send({ message, conversationId, imagePath, responseStyle, callbacks = {} }) {
+  send({ message, conversationId, imagePath, responseStyle, turnContext, callbacks = {} }) {
     this.controller = new AbortController()
     return this.streamChat({
       prompt: message,
       session_id: conversationId || null,
       image_path: imagePath || null,
-      response_style: responseStyle || 'balanced'
+      response_style: responseStyle || 'balanced',
+      turn_context: turnContext
     }, { ...callbacks, signal: this.controller.signal })
   }
 

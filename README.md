@@ -2,6 +2,13 @@
 
 小乐 AI 助手前端项目 - Vue 3 + Vite
 
+## Unified chat turn context
+
+`UnifiedChatTransport` 只向正式 `POST /api/chat/stream` 发送对话。每次用户
+发送动作生成一次冻结的 `turn_id`、`requested_at` 和浏览器 IANA
+`timezone`，HTTP retry、reconnect 与页面重试复用该 tuple，直到收到有效
+完成事件后清除。`/api/v2/chat` 不是 Reminder Loop 的写入口。
+
 ## 🚀 技术栈
 
 - **Vue 3** - 渐进式 JavaScript 框架

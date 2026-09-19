@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, nextTick } from 'vue'
 import api from '@/services/api'
 import { createChatTransport } from '@/chat/transports'
+import { clearTurnContext, resumeOrCreateTurnContext } from '@/chat/turnContext'
 import { API_BASE_URL } from '@/config/apiBase'
 
 export const useChatStore = defineStore('chat', () => {
@@ -111,7 +112,8 @@ export const useChatStore = defineStore('chat', () => {
             conversationId: turn.conversationId,
             content: turn.content,
             imagePath: turn.imagePath,
-            responseStyle: turn.responseStyle
+            responseStyle: turn.responseStyle,
+            turnContext: turn.turnContext
         }
     }
     const sendMessage = async (content, imagePath = null, router = null, options = {}) => {
@@ -317,6 +319,8 @@ export const useChatStore = defineStore('chat', () => {
         const responseStyle = options.responseStyle || 'balanced'
         const retryMessageId = options.retryMessageId
         const conversationId = options.conversationId ?? currentSessionId.value ?? null
+        const turnFingerprint = JSON.stringify([conversationId, content, imagePath])
+        const turnContext = options.turnContext || resumeOrCreateTurnContext(turnFingerprint)
         let placeholderId = null
         let wasAborted = false
         let accumulated = ''
@@ -365,7 +369,8 @@ export const useChatStore = defineStore('chat', () => {
                 conversationId,
                 content,
                 imagePath,
-                responseStyle
+                responseStyle,
+                turnContext
             }
 
             const transport = createChatTransport({ streamChat: api.streamChat })
@@ -431,6 +436,7 @@ export const useChatStore = defineStore('chat', () => {
                     if (accumulated.trim()) {
                         messages.value[msgIndex].status = 'done'
                         delete messages.value[msgIndex].recovery
+                        clearTurnContext(turnFingerprint)
                     } else {
                         setRecoveryState(messages.value[msgIndex], 'empty_response', failedTurn)
                     }
@@ -460,6 +466,7 @@ export const useChatStore = defineStore('chat', () => {
                 conversationId,
                 imagePath,
                 responseStyle,
+                turnContext,
                 callbacks: { onStart, onDelta, onEnd }
             })
             console.log('📤 Sent message with session_id:', currentSessionId.value || null)
@@ -501,7 +508,8 @@ export const useChatStore = defineStore('chat', () => {
                 {
                     responseStyle: recovery.responseStyle,
                     retryMessageId: message.id,
-                    conversationId: recovery.conversationId
+                    conversationId: recovery.conversationId,
+                    turnContext: recovery.turnContext
                 }
             )
         } finally {

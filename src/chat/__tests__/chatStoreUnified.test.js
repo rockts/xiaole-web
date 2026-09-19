@@ -44,12 +44,13 @@ describe('Phase B unified chat store', () => {
 
     await store.sendUnifiedMessage('语音转写', '/uploads/a.png', null, { responseStyle: 'voice_call' })
 
-    expect(streamChat).toHaveBeenCalledWith({
+    expect(streamChat).toHaveBeenCalledWith(expect.objectContaining({
       prompt: '语音转写',
       session_id: 'existing',
       image_path: '/uploads/a.png',
-      response_style: 'voice_call'
-    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+      response_style: 'voice_call',
+      turn_context: expect.objectContaining({ timezone: expect.any(String) })
+    }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(store.currentSessionId).toBe('existing')
   })
 
@@ -97,13 +98,23 @@ describe('Phase B unified chat store', () => {
 
     await store.retryMessage(failed)
 
+    const firstTurn = streamChat.mock.calls[0][0].turn_context
+    const retryTurn = streamChat.mock.calls[1][0].turn_context
+
     expect(store.messages.filter(message => message.role === 'user')).toHaveLength(1)
     expect(store.messages.at(-1)).toMatchObject({ id: 22, content: '恢复成功', status: 'done' })
     expect(store.messages.at(-1).recovery).toBeUndefined()
     expect(streamChat).toHaveBeenLastCalledWith(expect.objectContaining({
       prompt: '原始问题',
-      session_id: 'session-existing'
+      session_id: 'session-existing',
+      turn_context: firstTurn
     }), expect.any(Object))
+    expect(firstTurn).toEqual(expect.objectContaining({
+      turn_id: expect.any(String),
+      requested_at: expect.any(String),
+      timezone: expect.any(String)
+    }))
+    expect(retryTurn).toEqual(firstTurn)
   })
 
   it('keeps retry available after another failure and ignores a double retry', async () => {

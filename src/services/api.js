@@ -176,8 +176,11 @@ export default {
         }
         if (authStore.token) headers['Authorization'] = `Bearer ${authStore.token}`
 
-        // 图片路径通过body传输
-        const body = data.image_path ? JSON.stringify({ image_path: data.image_path }) : null
+        // 图片路径与冻结的语义 turn context 通过 body 传输。
+        const bodyPayload = {}
+        if (data.image_path) bodyPayload.image_path = data.image_path
+        if (data.turn_context) bodyPayload.turn_context = data.turn_context
+        const body = Object.keys(bodyPayload).length ? JSON.stringify(bodyPayload) : null
 
         const url = `${API_BASE_URL}/api/chat/stream?${params.toString()}`
         const res = await fetch(url, { method: 'POST', headers, body, signal })
