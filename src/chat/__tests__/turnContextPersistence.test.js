@@ -26,4 +26,21 @@ describe('semantic turn context persistence', () => {
     })
     expect(nextAction.turn_id).toBe('new-semantic-turn')
   })
+
+  it('keeps in-memory chat available when durable storage is unavailable', () => {
+    const unavailableStorage = {
+      getItem: () => null,
+      setItem: () => { throw new DOMException('full', 'QuotaExceededError') },
+      removeItem: () => { throw new DOMException('blocked', 'SecurityError') }
+    }
+    const options = {
+      storage: unavailableStorage,
+      now: () => new Date('2026-09-14T02:00:00Z'),
+      randomUUID: () => '018f8f72-4c58-7b5e-9ef1-5d96f902c42a',
+      resolveTimezone: () => 'Asia/Shanghai'
+    }
+
+    expect(() => resumeOrCreateTurnContext('same-action', options)).not.toThrow()
+    expect(() => clearTurnContext('same-action', unavailableStorage)).not.toThrow()
+  })
 })

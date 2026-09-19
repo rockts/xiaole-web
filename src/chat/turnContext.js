@@ -31,8 +31,16 @@ export const createTurnContext = ({
 
 const storageKey = fingerprint => `xiaole:pending-turn:${fingerprint}`
 
+const resolveStorage = storage => storage ?? (typeof sessionStorage === 'undefined' ? null : sessionStorage)
+
+export const persistTurnContext = (fingerprint, context, storage) => {
+  try {
+    resolveStorage(storage)?.setItem(storageKey(fingerprint), JSON.stringify(context))
+  } catch (_) { /* keep the current chat available when durable recovery is unavailable */ }
+}
+
 export const resumeOrCreateTurnContext = (fingerprint, options = {}) => {
-  const storage = options.storage ?? (typeof sessionStorage === 'undefined' ? null : sessionStorage)
+  const storage = resolveStorage(options.storage)
   if (storage) {
     try {
       const saved = JSON.parse(storage.getItem(storageKey(fingerprint)))
@@ -40,10 +48,12 @@ export const resumeOrCreateTurnContext = (fingerprint, options = {}) => {
     } catch (_) { /* fail closed to a fresh semantic send */ }
   }
   const context = createTurnContext(options)
-  storage?.setItem(storageKey(fingerprint), JSON.stringify(context))
+  persistTurnContext(fingerprint, context, storage)
   return context
 }
 
 export const clearTurnContext = (fingerprint, storage = typeof sessionStorage === 'undefined' ? null : sessionStorage) => {
-  storage?.removeItem(storageKey(fingerprint))
+  try {
+    storage?.removeItem(storageKey(fingerprint))
+  } catch (_) { /* completion must not fail because browser storage is unavailable */ }
 }

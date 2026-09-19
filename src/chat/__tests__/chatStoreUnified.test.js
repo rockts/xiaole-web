@@ -13,6 +13,7 @@ describe('Phase B unified chat store', () => {
     setActivePinia(createPinia())
     streamChat.mockReset()
     getSessions.mockClear()
+    sessionStorage.clear()
   })
 
   it('uses one streamed path for a new session and consumes the end session id', async () => {
@@ -115,6 +116,44 @@ describe('Phase B unified chat store', () => {
       timezone: expect.any(String)
     }))
     expect(retryTurn).toEqual(firstTurn)
+  })
+
+  it('creates a new semantic turn for a distinct send with identical content', async () => {
+    streamChat.mockRejectedValue(new Error('offline'))
+    const { useChatStore } = await import('../../stores/chat')
+    const store = useChatStore()
+    store.currentSessionId = 'session-existing'
+
+    await store.sendUnifiedMessage('20分钟后提醒我喝水')
+    await store.sendUnifiedMessage('20分钟后提醒我喝水')
+
+    const firstTurn = streamChat.mock.calls[0][0].turn_context
+    const secondTurn = streamChat.mock.calls[1][0].turn_context
+    expect(secondTurn.turn_id).not.toBe(firstTurn.turn_id)
+    expect(secondTurn).not.toBe(firstTurn)
+  })
+
+  it('clears the original pending turn after a new-session retry succeeds', async () => {
+    streamChat
+      .mockImplementationOnce(async (_request, { onStart, onEnd }) => {
+        onStart()
+        await onEnd({ session_id: 'assigned-session' })
+      })
+      .mockImplementationOnce(async (_request, { onStart, onDelta, onEnd }) => {
+        onStart()
+        onDelta('恢复成功')
+        await onEnd({ session_id: 'assigned-session' })
+      })
+    const { useChatStore } = await import('../../stores/chat')
+    const store = useChatStore()
+
+    await store.sendUnifiedMessage('原始问题')
+    const failed = store.messages.at(-1)
+    expect(sessionStorage.length).toBe(1)
+
+    await store.retryMessage(failed)
+
+    expect(sessionStorage.length).toBe(0)
   })
 
   it('keeps retry available after another failure and ignores a double retry', async () => {
